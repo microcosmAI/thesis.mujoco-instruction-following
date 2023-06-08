@@ -31,8 +31,8 @@ def done_function(mujoco_gym, agent):
     else:
         return False
     
-environment_path = "Examples/Environment/SingleBoxEnv.xml" # File containing the mujoco environment
-info_path = "Examples/Environment/info_example.json"    # File containing addtional environment informations
+environment_path = "Environment/SingleBoxEnv.xml" # File containing the mujoco environment
+info_path = "Environment/info_example.json"    # File containing addtional environment informations
 agents = ["agent1_torso"]
 
 
