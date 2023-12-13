@@ -25,7 +25,10 @@ def read_mujoco_shapes(directory, shape_amount):
         if filename.endswith(".xml"):
             tree = ET.parse(os.path.join(directory, filename))
             root = tree.getroot()
-            mujoco_element = root.find(".//mujoco")
+            mujoco_element = root.find("mujoco")
+            print(ET.tostring(root, encoding='utf-8').decode())
+
+            print(mujoco_element)
             if mujoco_element is not None:
                 model_attribute = mujoco_element.attrib.get("model", "")
                 shapes.append({"model": model_attribute, "xml_name": filename})
@@ -43,37 +46,32 @@ def read_instructions(json_file, attribute, instr_amount):
     return filtered_instructions
 
 
-# Example usage:
-
-
 # Test usage:
 
 # test colors
-json_file_path = "./data/instructions/instructions.txt"  # TODO path
+color_file_path = "./data/colors/output_1words_rgb.json"  # TODO path
 color_amount = 5  # TODO user input
 
-result = read_colors(json_file_path, color_amount)
+result = read_colors(color_file_path, color_amount)
 print(result)
 
 
 # test shapes
 xml_directory_path = (
-    "./data/objects"  # Replace with the actual path to your XML files
+    "./data/objects" 
 )
-shape_amount = 5  # Replace with the desired number of shapes
-
+shape_amount = 5 
 result = read_mujoco_shapes(xml_directory_path, shape_amount)
 print(result)
 
 # test instructions
-json_file_path = (
-    "./data/colors/output_1words_rgb.json"  # Replace with the actual path to your JSON file
+instr_file_path = (
+    "./data/instructions/instructions.txt"  
 )
 attribute_to_filter = "approach"  # Replace with 'approach' or 'avoid'
-instr_amount = 5  # Replace with the desired number of instructions
-
+instr_amount = 5  
 result = read_instructions(
-    json_file_path, attribute_to_filter, instr_amount
+    instr_file_path, attribute_to_filter, instr_amount
 )
 print(result)
 
