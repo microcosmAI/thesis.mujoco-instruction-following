@@ -24,11 +24,7 @@ def read_mujoco_shapes(directory, shape_amount):
     for filename in os.listdir(directory)[:shape_amount]:
         if filename.endswith(".xml"):
             tree = ET.parse(os.path.join(directory, filename))
-            root = tree.getroot()
-            mujoco_element = root.find("mujoco")
-            print(ET.tostring(root, encoding='utf-8').decode())
-
-            print(mujoco_element)
+            mujoco_element = tree.getroot()
             if mujoco_element is not None:
                 model_attribute = mujoco_element.attrib.get("model", "")
                 shapes.append({"model": model_attribute, "xml_name": filename})
