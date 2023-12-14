@@ -7,7 +7,7 @@
   {"approach": "Reach"},
   {"approach": "Close in on"},
   {"approach": "Draw near"},
-  {"approach": "Come to"},
+  {"approach": "Approach"},
   {"approach": "Touch"},
   {"approach": "Converge on"},
   {"approach": "Arrive at"},

@@ -42,34 +42,14 @@ def read_instructions(json_file, attribute, instr_amount):
     return filtered_instructions
 
 
-# Test usage:
+def generate_size_modifiers(size_amount):
+    size_modifiers = ["large", "small", "huge", "tiny"]
 
-# test colors
-color_file_path = "./data/colors/output_1words_rgb.json"  # TODO path
-color_amount = 5  # TODO user input
+    if size_amount == 1:
+        return []
+    else:
+        return size_modifiers[:size_amount]
 
-result = read_colors(color_file_path, color_amount)
-print(result)
-
-
-# test shapes
-xml_directory_path = (
-    "./data/objects" 
-)
-shape_amount = 5 
-result = read_mujoco_shapes(xml_directory_path, shape_amount)
-print(result)
-
-# test instructions
-instr_file_path = (
-    "./data/instructions/instructions.txt"  
-)
-attribute_to_filter = "approach"  # Replace with 'approach' or 'avoid'
-instr_amount = 5  
-result = read_instructions(
-    instr_file_path, attribute_to_filter, instr_amount
-)
-print(result)
 
 # TODO output current amounts
 # TODO get user input on how many of each
