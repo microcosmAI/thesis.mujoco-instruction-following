@@ -5,6 +5,7 @@ import json
 import os
 import xml.etree.ElementTree as ET
 import argparse
+from itertools import product
 
 
 def read_colors(json_file):
@@ -43,26 +44,26 @@ def generate_shape_list(directory, shape_amount):
     return shapes[:shape_amount]
 
 
-def read_instructions(json_file, attribute):
+def read_instructions(json_file, instr_type):
     with open(json_file, "r") as file:
         data = json.load(file)
 
     filtered_instructions = [
-        instr for instr in data if instr.get(attribute) is not None
+        instr for instr in data if instr.get(instr_type) is not None
     ]
     return filtered_instructions
 
 
-def generate_instr_list(json_file, attribute, instr_amount):
-    instructions = read_instructions(json_file, attribute)
+def generate_instr_list(json_file, instr_type, instr_amount):
+    instructions = read_instructions(json_file, instr_type)
     return instructions[instr_amount]
 
 
-def generate_size_modifiers(size_amount, size_modifiers):
+def generate_size_modifiers(size_amount, size_modifier_list):
     if size_amount == 1:
         return []
     else:
-        return size_modifiers[:size_amount]
+        return size_modifier_list[:size_amount]
 
 
 def calculate_total_variations(*args):
@@ -78,24 +79,50 @@ def calculate_total_variations(*args):
     return result
 
 
+def generate_instruction_dict(color_list, shape_list, *instruction_lists, size_list=None):
+    instructions_dict = {}
+
+    # Create a list containing all combinations of elements from the input lists
+    combinations = product(color_list, shape_list, *instruction_lists)
+
+    for combination in combinations:
+        color, shape = combination[:2]
+        instructions = {'color': color, 'shape': shape}
+
+        # Add size to the instruction if size_list is provided
+        if size_list:
+            instructions['size'] = size_list[color_list.index(color)]
+
+        # Add additional instructions from the rest of the combination
+        for idx, instruction_list in enumerate(combination[2:]):
+            instructions[f'instruction_list_{idx + 1}'] = instruction_list
+
+        # Create a unique key for each combination
+        key = tuple(combination)
+        instructions_dict[key] = instructions
+
+    return instructions_dict
+
+
 def main():
     # Data to build instructions from
     color_file_path = "./data/colors/output_1words_rgb.json"
     xml_directory_path = "./data/objects"
     instr_file_path = "./data/instructions/instructions.txt"
-    attributes = [
+    instr_types = [
         "approach",
         "avoid",
-    ]  # TODO naming: check if attribute is the right word here
-    size_modifiers = ["large", "small", "huge", "tiny"]
+    ] 
+    size_modifier_list = ["large", "small", "huge", "tiny"]
+    color_list = read_colors(color_file_path)
+    shape_list = read_mujoco_shapes(xml_directory_path)
+    instr_lists = [read_instructions(instr_file_path, instr_type) for instr_type in instr_types]
 
     # Metadata for CLI
-    max_color_amount = len(read_colors(color_file_path))
-    max_shape_amount = len(read_mujoco_shapes(xml_directory_path))
-    max_instr_amounts = [
-        len(read_instructions(instr_file_path, attribute)) for attribute in attributes
-    ]
-    max_size_amount = len(size_modifiers)
+    max_color_amount = len(color_list)
+    max_shape_amount = len(shape_list)
+    max_instr_amounts = [len(instr_list) for instr_list in instr_lists]
+    max_size_amount = len(size_modifier_list)
 
     # Parser
     parser = argparse.ArgumentParser(
@@ -116,9 +143,9 @@ def main():
         help="Number of shapes",
     )
 
-    # Add dynamic arguments based on max_instr_amounts and attributes
+    # Add dynamic arguments based on max_instr_amounts and instr_types
     for i, max_instr_amount in enumerate(max_instr_amounts):
-        attribute_name = attributes[i] + "_instr_amount"
+        attribute_name = instr_types[i] + "_instr_amount"
         parser.add_argument(
             f"--{attribute_name}",
             type=int,
@@ -156,10 +183,10 @@ def main():
         )
         instr_amounts = []
         for i, max_instr_amount in enumerate(max_instr_amounts):
-            attribute_name = attributes[i] + "_instr_amount"
+            attribute_name = instr_types[i] + "_instr_amount"
             current_value = getattr(args, attribute_name)
             new_value = int(
-                    input(f"Amount of instructions of type {attributes[i]} ({current_value}): ")
+                    input(f"Amount of instructions of type {instr_types[i]} ({current_value}): ")
                     or current_value,
                 )
             instr_amounts.append(new_value)
@@ -185,6 +212,9 @@ def main():
         if input("\nDo you want to continue? (yes/no): ").lower() != "yes":
             break
 
+    combinations = generate_instruction_dict(color_list=color_list, shape_list=shape_list, size_list=size_modifier_list, *instr_lists)
+
+    print(combinations)
 
 if __name__ == "__main__":
     main()
