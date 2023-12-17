@@ -70,7 +70,7 @@ def read_instructions_by_type(json_file, instr_type):
 
 def generate_instr_list_by_type(json_file, instr_type, instr_amount):
     instructions = read_instructions_by_type(json_file, instr_type)
-    return instructions[instr_amount]
+    return instructions[:instr_amount]
 
 
 def generate_size_modifiers(size_amount, size_modifier_list):
@@ -116,10 +116,10 @@ def calculate_total_variations(
     return result
 
 
-def generate_prompt_dict(color_list, shape_list, instruction_lists, size_list):
+def generate_prompt_dict(color_list, shape_list, instruction_list, size_list):
     instruction_list = [
         {"type": list(instr_dict.keys())[0], "value": list(instr_dict.values())[0]}
-        for sublist in instruction_lists
+        for sublist in instruction_list
         for instr_dict in sublist
     ]
 
@@ -260,12 +260,26 @@ def main():
     # also, is the format for the instructions okay (being list instead of list of dicts like all the others?)
 
     combinations = generate_prompt_dict(
-        color_list=color_list,
-        shape_list=shape_list,
-        size_list=size_modifier_list,
-        instruction_lists=instr_lists,
+        color_list=generate_color_list(
+            json_file=color_file_path, color_amount=color_amount
+        ),
+        shape_list=generate_shape_list(
+            directory=xml_directory_path, shape_amount=shape_amount
+        ),
+        size_list=generate_size_modifiers(
+            size_amount=size_amount, size_modifier_list=size_modifier_list
+        ),
+        instruction_list=[
+            generate_instr_list_by_type(
+                json_file=instr_file_path,
+                instr_type=instr_type,
+                instr_amount=instr_amount,
+            )
+            for instr_type, instr_amount in zip(instr_types, instr_amounts)
+        ],
     )
 
+    print(combinations) # for debugging
 
 if __name__ == "__main__":
     main()
