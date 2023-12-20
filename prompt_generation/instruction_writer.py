@@ -74,7 +74,7 @@ def generate_instr_list_by_type(json_file, instr_type, instr_amount):
 
 
 def generate_size_modifiers(size_amount, size_modifier_list):
-    if size_amount == 1:
+    if size_amount == 1 or size_amount == 0:
         return []
     else:
         return size_modifier_list[:size_amount]
@@ -115,8 +115,9 @@ def calculate_total_variations(
             result *= element
     return result
 
-
+print('syd was here')
 def generate_prompt_dict(color_list, shape_list, instruction_list, size_list):
+    # TODO handle exception for sizes 0 and 1
     instruction_list = [
         {"type": list(instr_dict.keys())[0], "value": list(instr_dict.values())[0]}
         for sublist in instruction_list
