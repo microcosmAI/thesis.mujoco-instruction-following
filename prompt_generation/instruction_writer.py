@@ -115,9 +115,9 @@ def calculate_total_variations(
             result *= element
     return result
 
-print('syd was here')
+
 def generate_prompt_dict(color_list, shape_list, instruction_list, size_list):
-    # TODO handle exception for sizes 0 and 1
+    # TODO handle exception for size_list lengths 0 and 1
     instruction_list = [
         {"type": list(instr_dict.keys())[0], "value": list(instr_dict.values())[0]}
         for sublist in instruction_list
@@ -134,12 +134,21 @@ def generate_prompt_dict(color_list, shape_list, instruction_list, size_list):
     return prompt_list
 
 
+def export_to_json(prompt_dicts, output_filepath):
+    # TODO add docstring, type for prompts is list of dicts for now
+    with open(output_filepath, "w") as json_file:
+        json.dump(prompt_dicts, json_file)
+
+    print(f"Prompts have been written to{output_filepath}")
+
+
 def main():
     # Data to build instructions from
     color_file_path = "./data/colors/output_1words_rgb.json"
     xml_directory_path = "./data/objects"
     instr_file_path = "./data/instructions/instructions.txt"
     instr_types = ["approach", "avoid"]
+    output_file_path = "./output/prompts.json"
 
     size_modifier_list = ["large", "small", "huge", "tiny"]
     color_list = read_colors(color_file_path)
@@ -281,6 +290,8 @@ def main():
     )
 
     print(combinations) # for debugging
+
+    export_to_json(output_filepath=output_file_path, prompt_dicts=combinations) #TODO change output filepath var name
 
 if __name__ == "__main__":
     main()
