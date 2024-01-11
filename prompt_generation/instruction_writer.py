@@ -11,6 +11,14 @@ from itertools import product
 
 
 def read_colors(json_file):
+    """Read color names and RGB values from a .json file
+
+    Args:
+        json_file (str): Path to .json file containing color information
+
+    Returns:
+        list: list of dicts, structured {"name": name, "rgb": rgb value}
+    """    
     with open(json_file, "r") as file:
         data = json.load(file)
 
@@ -149,7 +157,7 @@ def generate_prompt_dicts(color_list, shape_list, instruction_list, size_list):
 
 
 def export_to_json(prompt_dicts, output_filepath):
-    # TODO add docstring, type for prompts is list of dicts for now
+    # TODO add docstring
     with open(output_filepath, "w") as json_file:
         json.dump(prompt_dicts, json_file)
 
