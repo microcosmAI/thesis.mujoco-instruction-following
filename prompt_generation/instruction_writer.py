@@ -47,7 +47,7 @@ def generate_shape_list(directory, shape_amount):
 
 
 def read_instructions_by_type(json_file, instr_type):
-    """Reads a json file with "instr_type: instruction" formatted values. Returns a list of dicts of those instructions that are of instr_type
+    """Reads a json file with "instr_type: instruction" formatted values. Returns a list of dicts of those instructions that are of type instr_type
 
     Args:
         json_file (str): path to .json file with instructions
@@ -117,7 +117,8 @@ def calculate_total_variations(
 
 
 def generate_prompt_dict(color_list, shape_list, instruction_list, size_list):
-    # TODO handle exception for size_list lengths 0 and 1
+    # TODO handle exception for sizes 0 and 1
+    # TODO rename such that it is accurate (current output is list of dict)
     instruction_list = [
         {"type": list(instr_dict.keys())[0], "value": list(instr_dict.values())[0]}
         for sublist in instruction_list
@@ -125,11 +126,12 @@ def generate_prompt_dict(color_list, shape_list, instruction_list, size_list):
     ]
 
     prompt_list = [
-        {"color": color, "shape": shape, "instruction": instruction, "size": size}
-        for color, shape, instruction, size in product(
-            color_list, shape_list, instruction_list, size_list
+        {"instruction": instruction, "size": size, "color": color, "shape": shape}
+        for instruction, size, color, shape in product(
+            instruction_list, size_list, color_list, shape_list
         )
     ]
+
 
     return prompt_list
 
@@ -144,15 +146,15 @@ def export_to_json(prompt_dicts, output_filepath):
 
 def main():
     # Data to build instructions from
-    color_file_path = "./data/colors/output_1words_rgb.json"
-    xml_directory_path = "./data/objects"
+    color_filepath = "./data/colors/output_1words_rgb.json"
+    xml_directory_filepath = "./data/objects"
     instr_file_path = "./data/instructions/instructions.txt"
     instr_types = ["approach", "avoid"]
-    output_file_path = "./output/prompts.json"
+    output_filepath = "./output/prompts.json"
 
     size_modifier_list = ["large", "small", "huge", "tiny"]
-    color_list = read_colors(color_file_path)
-    shape_list = read_mujoco_shapes(xml_directory_path)
+    color_list = read_colors(color_filepath)
+    shape_list = read_mujoco_shapes(xml_directory_filepath)
     instr_lists = [
         read_instructions_by_type(instr_file_path, instr_type)
         for instr_type in instr_types
@@ -271,10 +273,10 @@ def main():
 
     combinations = generate_prompt_dict(
         color_list=generate_color_list(
-            json_file=color_file_path, color_amount=color_amount
+            json_file=color_filepath, color_amount=color_amount
         ),
         shape_list=generate_shape_list(
-            directory=xml_directory_path, shape_amount=shape_amount
+            directory=xml_directory_filepath, shape_amount=shape_amount
         ),
         size_list=generate_size_modifiers(
             size_amount=size_amount, size_modifier_list=size_modifier_list
@@ -291,7 +293,7 @@ def main():
 
     print(combinations) # for debugging
 
-    export_to_json(output_filepath=output_file_path, prompt_dicts=combinations) #TODO change output filepath var name
+    export_to_json(output_filepath=output_filepath, prompt_dicts=combinations) #TODO change output filepath var name
 
 if __name__ == "__main__":
     main()
