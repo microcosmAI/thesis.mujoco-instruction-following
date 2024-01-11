@@ -116,9 +116,10 @@ def calculate_total_variations(
     return result
 
 
-def generate_prompt_dict(color_list, shape_list, instruction_list, size_list):
+def generate_prompt_dicts(color_list, shape_list, instruction_list, size_list):
     # TODO handle exception for sizes 0 and 1
-    # TODO rename such that it is accurate (current output is list of dict)
+
+    # Generate list of dicts of all combinations
     instruction_list = [
         {"type": list(instr_dict.keys())[0], "value": list(instr_dict.values())[0]}
         for sublist in instruction_list
@@ -131,6 +132,17 @@ def generate_prompt_dict(color_list, shape_list, instruction_list, size_list):
             instruction_list, size_list, color_list, shape_list
         )
     ]
+
+    # Generate prompt string for each dict, add prompt string to list
+    for entry in prompt_list:
+        instruction_value = entry["instruction"]["value"]
+        size_value = entry["size"]
+        color_name = entry["color"]["name"]
+        shape_model = entry["shape"]["model"]
+
+        prompt_string = f"{instruction_value} the {size_value} {color_name} {shape_model}"
+
+        entry["prompt"] = prompt_string
 
 
     return prompt_list
@@ -271,7 +283,7 @@ def main():
     # i want, or just shorten the lists I already have.
     # also, is the format for the instructions okay (being list instead of list of dicts like all the others?)
 
-    combinations = generate_prompt_dict(
+    combinations = generate_prompt_dicts(
         color_list=generate_color_list(
             json_file=color_filepath, color_amount=color_amount
         ),
