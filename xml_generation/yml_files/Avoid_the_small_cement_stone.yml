@@ -1,0 +1,25 @@
+Environment:
+  Borders:
+  - xml_name: Border.xml
+  - place: true
+  - tags:
+    - Border
+  Objects:
+    Stone:
+    - z_rotation_range:
+      - -180
+      - 180
+    - coordinates:
+      - - 4
+        - 4
+        - 4
+      - - 8
+        - 8
+        - 8
+    - tags:
+      - Distractor
+  Style:
+  - pretty_mode: false
+  size_range:
+  - 100
+  - 100
