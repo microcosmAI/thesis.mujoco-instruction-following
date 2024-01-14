@@ -26,7 +26,7 @@ def write_yaml_entry(entry, yaml_output_path, object_pool):
     Args:
         entry (dict): Entry describing the target object and prompt
         yaml_output_path (str): Path to output directory
-        object_pool (list): List of all object types that occur in the json file 
+        object_pool (list): List of all object types that occur in the json file
 
     Raises:
         ValueError: If no object shape is found in the entry
@@ -34,16 +34,13 @@ def write_yaml_entry(entry, yaml_output_path, object_pool):
     # Define the fixed structure for the YAML file
     yaml_data = {
         "Environment": {
-            "size_range": [100, 100], 
-            "Style": {
-                "pretty_mode": False,
-            },
+            "size_range": [1000, 1000],
+            "Style": [{"pretty_mode": False}],
             "Borders": [
                 {"xml_name": "Border.xml"},
                 {"place": True},
-                {"tags": ["Border"]}
+                {"tags": ["Border"]},
             ],
-            
             "Objects": {},
         }
     }
@@ -51,6 +48,7 @@ def write_yaml_entry(entry, yaml_output_path, object_pool):
     # Add five specific objects
     for i in range(0, 5):
         # TODO change the coordinates to be in range for my env
+        coordinate_range = "[[1., 1., 3.], [2., 2., 3.]]"
 
         # Note: xml_name refers to the name of the xml object that gets loaded (providing the object shape)
         if i == 0:
@@ -62,8 +60,12 @@ def write_yaml_entry(entry, yaml_output_path, object_pool):
 
             obj_structure = [
                 {"xml_name": f"{xml_name}"},
+                {"amount": 1},
                 {"z_rotation_range": [-180, 180]},
                 {"tags": ["Target"]},
+                {
+                    "coordinates": coordinate_range
+                },  # TODO put in coordinates that are in range for my env
             ]
         elif i == 1:
             # Add one distractor of the same shape as the target object (will get a different color later)
@@ -71,12 +73,13 @@ def write_yaml_entry(entry, yaml_output_path, object_pool):
                 xml_name = entry["shape"]["xml_name"]
             else:
                 raise ValueError("No shape specified for target object")
-            
+
             obj_structure = [
                 {"xml_name": f"{xml_name}"},
+                {"amount": 1},
                 {"z_rotation_range": [-180, 180]},
                 {
-                    "coordinates": [[i, i, i], [2 * i, 2 * i, 2 * i]]
+                    "coordinates": coordinate_range
                 },  # TODO put in coordinates that are in range for my env
                 {"tags": ["Distractor"]},
             ]
@@ -90,11 +93,16 @@ def write_yaml_entry(entry, yaml_output_path, object_pool):
                     if xml_name != entry["shape"]["xml_name"]:
                         break
 
+            #TODO if there are not enough objects in the object pool, we need to add more objects of the same type as the target object
+                    # These should get a number after their name, e.g. "apple1", "apple2", etc.
+            
+
             obj_structure = [
                 {"xml_name": f"{xml_name}"},
+                {"amount": 1},
                 {"z_rotation_range": [-180, 180]},
                 {
-                    "coordinates": [[i, i, i], [2 * i, 2 * i, 2 * i]]
+                    "coordinates": coordinate_range
                 },  # TODO put in coordinates that are in range for my env
                 {"tags": ["Distractor"]},
             ]
@@ -108,26 +116,26 @@ def write_yaml_entry(entry, yaml_output_path, object_pool):
 
     os.makedirs(os.path.dirname(yaml_output_path), exist_ok=True)
 
-    #with open(yaml_output_path, 'w') as yaml_file:
+    # with open(yaml_output_path, 'w') as yaml_file:
     #    yaml.dump(yaml_data, yaml_file, default_flow_style=None, indent=2)
 
     # Convert data to YAML
     yaml_str = yaml.dump(yaml_data, default_flow_style=None, indent=2)
 
-    # Remove all curly brackets from the YAML string
-    yaml_str = yaml_str.replace("{", "").replace("}", "")
+    # Alter the YAML string formatting to the current expected format for PITA (subject to change)
+    yaml_str = yaml_str.replace("{", "").replace("}", "").replace("'", "")
 
     # Write the modified YAML string to file
-    with open(yaml_output_path, 'w') as yaml_file:
+    with open(yaml_output_path, "w") as yaml_file:
         yaml_file.write(yaml_str)
 
 
-def write_yamls(json_file, yaml_output_path):
-    """Generates yaml files in yaml_output_path based on the data in json_file
+def write_levels(json_file, yaml_output_path, xml_output_path, xml_object_path):
+    """Generates xml files in xml_output_path based on the entries in the json file
 
     Args:
-        json_file (str): path to json file
-        yaml_output_path (str): path to output directory
+        yaml_output_path (str): path to yaml directory
+        xml_output_path (str): path to output directory
 
     Returns:
         none
@@ -138,7 +146,39 @@ def write_yamls(json_file, yaml_output_path):
     object_pool = get_object_pool(data)
 
     for entry in data:
-        write_yaml_entry(entry, yaml_output_path, object_pool)
+        write_yaml_entry(
+            entry=entry, yaml_output_path=yaml_output_path, object_pool=object_pool
+        )
+        write_xml_entry(
+            entry=entry,
+            yaml_output_path=yaml_output_path,
+            xml_output_path=xml_output_path,
+            xml_object_path=xml_object_path,
+        )
+
+
+def write_xml_entry(entry, yaml_output_path, xml_object_path, xml_output_path):
+    """Generates a single xml file based on a single yaml file, as well as the details from the json file"""
+    # get yaml/xml filenames from json entry
+    yaml_path = os.path.join(
+        yaml_output_path, entry["prompt"].replace(" ", "_").lower() + ".yml"
+    )
+    xml_path = os.path.join(
+        xml_output_path, entry["prompt"].replace(" ", "_").lower() + ".xml"
+    )
+
+    xml_object_path = os.path.join(xml_object_path)
+
+    # call PITA
+    PITA().run(
+        random_seed=None,
+        config_path=yaml_path,
+        xml_dir=xml_object_path,
+        export_path=xml_path,
+        plot=False,
+    )
+
+    # TODO change the colors of the objects in the xml file according to my experiment
 
 
 def write_xmls(yaml_output_path, xml_output_path, xml_object_path):
@@ -150,6 +190,8 @@ def write_xmls(yaml_output_path, xml_output_path, xml_object_path):
 
     Returns:
         none
+
+    Should be obsolete, since we can just call PITA on each yaml directly
     """
     # iterate over all yamls in yaml_output_path, call PITA on each entry, and save the resulting xml in xml_output_path
     for filename in os.listdir(yaml_output_path):
@@ -183,10 +225,8 @@ def get_object_pool(data):
                 object_pool.append(entry["shape"]["xml_name"])
         else:
             raise ValueError("No shape specified for target object")
-        
+
     return object_pool
-
-
 
 
 def main():
@@ -196,11 +236,17 @@ def main():
     xml_output_path = os.path.join("xml_files")
     xml_object_path = os.path.join("xml_objects")
 
+    # Write yamls and xmls
+    print("Using objects stored at", xml_object_path)
     print("Writing yamls at", yaml_output_path)
-    write_yamls(json_file, yaml_output_path)
-
     print("Writing xmls at", xml_output_path)
-    write_xmls(yaml_output_path, xml_output_path, xml_object_path)
+    write_levels(
+        json_file=json_file,
+        yaml_output_path=yaml_output_path,
+        xml_output_path=xml_output_path,
+        xml_object_path=xml_object_path,
+    )
+
 
 if __name__ == "__main__":
     main()

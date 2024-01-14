@@ -6,17 +6,16 @@ Environment:
   Objects:
     Stone:
     - xml_name: Stone.xml
+    - amount: 1
     - z_rotation_range: [-180, 180]
-    - coordinates:
-      - [1, 1, 1]
-      - [2, 2, 2]
+    - coordinates: [[1., 1., 3.], [2., 2., 3.]]
     - tags: [Distractor]
     Tree:
     - xml_name: Tree.xml
+    - amount: 1
     - z_rotation_range: [-180, 180]
-    - coordinates:
-      - [4, 4, 4]
-      - [8, 8, 8]
+    - coordinates: [[1., 1., 3.], [2., 2., 3.]]
     - tags: [Distractor]
-  Style: pretty_mode: false
-  size_range: [100, 100]
+  Style:
+  - pretty_mode: false
+  size_range: [1000, 1000]
