@@ -46,9 +46,10 @@ def write_yaml_entry(entry, yaml_output_path, object_pool):
     }
 
     # Add five specific objects
-    for i in range(0, 5):
+    for i in range(0, 1):
         # TODO change the coordinates to be in range for my env
-        coordinate_range = "[[1., 1., 3.], [2., 2., 3.]]"
+        coordinate_range1 = "[[1., 1., 3.], [32., 32., 3.]]"
+        coordinate_range2 = "[[13., 13., 3.], [14., 14., 3.]]"
 
         # Note: xml_name refers to the name of the xml object that gets loaded (providing the object shape)
         if i == 0:
@@ -60,11 +61,11 @@ def write_yaml_entry(entry, yaml_output_path, object_pool):
 
             obj_structure = [
                 {"xml_name": f"{xml_name}"},
-                {"amount": 1},
+                {"amount": 2},
                 {"z_rotation_range": [-180, 180]},
                 {"tags": ["Target"]},
                 {
-                    "coordinates": coordinate_range
+                    "coordinates": coordinate_range1
                 },  # TODO put in coordinates that are in range for my env
             ]
         elif i == 1:
@@ -76,10 +77,10 @@ def write_yaml_entry(entry, yaml_output_path, object_pool):
 
             obj_structure = [
                 {"xml_name": f"{xml_name}"},
-                {"amount": 1},
+                {"amount": 3},
                 {"z_rotation_range": [-180, 180]},
                 {
-                    "coordinates": coordinate_range
+                    "coordinates": coordinate_range2
                 },  # TODO put in coordinates that are in range for my env
                 {"tags": ["Distractor"]},
             ]
@@ -102,7 +103,7 @@ def write_yaml_entry(entry, yaml_output_path, object_pool):
                 {"amount": 1},
                 {"z_rotation_range": [-180, 180]},
                 {
-                    "coordinates": coordinate_range
+                    "coordinates": coordinate_range2
                 },  # TODO put in coordinates that are in range for my env
                 {"tags": ["Distractor"]},
             ]
