@@ -1,0 +1,22 @@
+Environment:
+  Borders:
+    place: true
+    tags: [Border]
+    xml_name: Border.xml
+  Objects:
+    Apple:
+    - {xml_name: Apple.xml}
+    - z_rotation_range: [-180, 180]
+    - coordinates:
+      - [4, 4, 4]
+      - [8, 8, 8]
+    - tags: [Distractor]
+    Tree:
+    - {xml_name: Tree.xml}
+    - z_rotation_range: [-180, 180]
+    - coordinates:
+      - [1, 1, 1]
+      - [2, 2, 2]
+    - tags: [Distractor]
+  Style: {pretty_mode: false}
+  size_range: [100, 100]
