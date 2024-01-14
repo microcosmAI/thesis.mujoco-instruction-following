@@ -38,11 +38,12 @@ def write_yaml_entry(entry, yaml_output_path, object_pool):
             "Style": {
                 "pretty_mode": False,
             },
-            "Borders": {
-                "xml_name": "Border.xml",
-                "place": True,
-                "tags": ["Border"],
-            },
+            "Borders": [
+                {"xml_name": "Border.xml"},
+                {"place": True},
+                {"tags": ["Border"]}
+            ],
+            
             "Objects": {},
         }
     }
@@ -101,17 +102,24 @@ def write_yaml_entry(entry, yaml_output_path, object_pool):
         obj_name = xml_name.split(".")[0]
         yaml_data["Environment"]["Objects"][obj_name] = obj_structure
 
-    # Write YAML data to file
+    # Get filename from prompt
     entry_name = entry["prompt"].replace(" ", "_").lower()
     yaml_output_path = os.path.join(yaml_output_path, f"{entry_name}.yml")
 
     os.makedirs(os.path.dirname(yaml_output_path), exist_ok=True)
 
-    #with open(yaml_output_path, "w") as yaml_file:
-    #    yaml.dump(yaml_data, yaml_file, default_flow_style=False)
+    #with open(yaml_output_path, 'w') as yaml_file:
+    #    yaml.dump(yaml_data, yaml_file, default_flow_style=None, indent=2)
 
+    # Convert data to YAML
+    yaml_str = yaml.dump(yaml_data, default_flow_style=None, indent=2)
+
+    # Remove all curly brackets from the YAML string
+    yaml_str = yaml_str.replace("{", "").replace("}", "")
+
+    # Write the modified YAML string to file
     with open(yaml_output_path, 'w') as yaml_file:
-        yaml.dump(yaml_data, yaml_file, default_flow_style=None, indent=2)
+        yaml_file.write(yaml_str)
 
 
 def write_yamls(json_file, yaml_output_path):
@@ -151,8 +159,7 @@ def write_xmls(yaml_output_path, xml_output_path, xml_object_path):
             xml_object_path = os.path.join(xml_object_path)
 
             # call PITA
-            PITA.run(
-                self=None,
+            PITA().run(
                 random_seed=None,
                 config_path=yaml_path,
                 xml_dir=xml_object_path,
@@ -166,12 +173,10 @@ def write_xmls(yaml_output_path, xml_output_path, xml_object_path):
 
 
 def get_object_pool(data):
-    """Returns a list of each object type that occurs in data (reads from entry["shape"]["xml_name"])"""
-
+    """Returns a list of every object type (=xml_name) that occurs in data"""
 
     object_pool = []
     for entry in data:
-        # TODO check if entry["shape"]["xml_name"] is already in object_pool
         if "shape" in entry and "xml_name" in entry["shape"]:
             xml_name = entry["shape"]["xml_name"]
             if xml_name not in object_pool:

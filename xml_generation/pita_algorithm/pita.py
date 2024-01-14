@@ -100,13 +100,13 @@ class PITA:
 def main(
     random_seed: int = typer.Option(default=None, help="Pass seed."),
     config_path: str = typer.Option(
-        default="examples/config_files/ballpit.yml", help="Specify path to config yml."
+        default="./examples/config_files/advance_to_the_huge_dust_apple.yml", help="Specify path to config yml."
     ),
     xml_dir: str = typer.Option(
-        default="examples/xml_objects", help="Specify path to xml files."
+        default="./examples/xml_objects", help="Specify path to xml files."
     ),
     export_path: str = typer.Option(
-        default="export/test", help="Specify path to output directory."
+        default="./export/test", help="Specify path to output directory."
     ),
     plot: bool = typer.Option(default=False, help="Set to True to enable plots."),
 ):
