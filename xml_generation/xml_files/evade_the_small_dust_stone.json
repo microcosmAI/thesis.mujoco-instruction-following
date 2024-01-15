@@ -143,8 +143,8 @@
                     "type": null,
                     "class": "Box",
                     "position": [
-                        -329.67135,
-                        266.7273,
+                        -308.33615,
+                        328.0314000000001,
                         0.5
                     ],
                     "color": [
@@ -167,13 +167,85 @@
         "Area2": {
             "configuration": {},
             "objects": {
+                "stone0/stone0": {
+                    "name": "stone0/stone0",
+                    "type": null,
+                    "class": "Stone",
+                    "position": [
+                        351.3388,
+                        -146.30409999999995,
+                        0.1
+                    ],
+                    "color": [
+                        1.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "size": [
+                        0.1,
+                        0.1,
+                        2.0
+                    ],
+                    "tags": [
+                        "Target"
+                    ]
+                },
+                "stone1/stone1": {
+                    "name": "stone1/stone1",
+                    "type": null,
+                    "class": "Stone",
+                    "position": [
+                        313.89955,
+                        -438.67,
+                        0.1
+                    ],
+                    "color": [
+                        1.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "size": [
+                        0.1,
+                        0.1,
+                        2.0
+                    ],
+                    "tags": [
+                        "Distractor"
+                    ]
+                },
                 "tree/tree": {
                     "name": "tree/tree",
                     "type": null,
                     "class": "Tree",
                     "position": [
-                        257.82515,
-                        -318.0982,
+                        189.81765000000001,
+                        -441.6742,
+                        0.1
+                    ],
+                    "color": [
+                        1.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "size": [
+                        0.1,
+                        0.1,
+                        2.0
+                    ],
+                    "tags": [
+                        "Distractor"
+                    ]
+                },
+                "tree_1/tree": {
+                    "name": "tree_1/tree",
+                    "type": null,
+                    "class": "Tree",
+                    "position": [
+                        228.27595,
+                        -457.6345,
                         0.1
                     ],
                     "color": [

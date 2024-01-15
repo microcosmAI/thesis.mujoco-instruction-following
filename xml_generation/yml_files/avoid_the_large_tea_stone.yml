@@ -8,7 +8,23 @@ Areas:
       - tags: [Placeholder]
   Area2:
     Objects:
-      Stone:
+      Stone0:
+      - xml_name: Stone.xml
+      - amount: [1, 1]
+      - z_rotation_range: [-180, 180]
+      - tags: [Target]
+      Stone1:
+      - xml_name: Stone.xml
+      - amount: [1, 1]
+      - z_rotation_range: [-180, 180]
+      - tags: [Distractor]
+      Stone2:
+      - xml_name: Stone.xml
+      - amount: [1, 1]
+      - z_rotation_range: [-180, 180]
+      - tags: [Distractor]
+      - asset_pool: [Tree.xml]
+      Stone3:
       - xml_name: Stone.xml
       - amount: [1, 1]
       - z_rotation_range: [-180, 180]

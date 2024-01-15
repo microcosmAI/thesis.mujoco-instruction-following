@@ -120,7 +120,8 @@ def write_yaml_entry(entry, yaml_output_path, object_pool):
             if len(non_target_shapes) > 0:
                 obj_structure.append({"asset_pool": non_target_shapes})
 
-        obj_name = xml_name.split(".")[0]
+        obj_name = xml_name.split(".")[0]      
+        obj_name = f"{obj_name}{i}" # avoid duplicates
         yaml_data["Areas"]["Area2"]["Objects"][obj_name] = obj_structure
 
     # Get filename from prompt
