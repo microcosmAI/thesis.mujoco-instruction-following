@@ -336,11 +336,9 @@ def main():
         ],
     )
 
-    print(combinations)  # for debugging
-
     export_to_json(
         output_filepath=output_filepath, prompt_dicts=combinations
-    )  # TODO change output filepath var name
+    ) 
 
 
 if __name__ == "__main__":

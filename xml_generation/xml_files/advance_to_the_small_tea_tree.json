@@ -1,0 +1,197 @@
+{
+    "environment": {
+        "configuration": {
+            "Style": [
+                {
+                    "pretty_mode": false
+                }
+            ],
+            "size_range": [
+                1000,
+                1000
+            ]
+        },
+        "objects": {
+            "border/border": {
+                "name": "border/border",
+                "type": null,
+                "class": "Border",
+                "position": [
+                    0.0,
+                    501.0,
+                    2.0
+                ],
+                "color": [
+                    0.035,
+                    0.016,
+                    0.29,
+                    1.0
+                ],
+                "size": [
+                    500.0,
+                    1.0,
+                    2.0
+                ],
+                "tags": [
+                    "Border"
+                ]
+            },
+            "border_1/border": {
+                "name": "border_1/border",
+                "type": null,
+                "class": "Border",
+                "position": [
+                    0.0,
+                    -501.0,
+                    2.0
+                ],
+                "color": [
+                    0.035,
+                    0.016,
+                    0.29,
+                    1.0
+                ],
+                "size": [
+                    500.0,
+                    1.0,
+                    2.0
+                ],
+                "tags": [
+                    "Border"
+                ]
+            },
+            "border_2/border": {
+                "name": "border_2/border",
+                "type": null,
+                "class": "Border",
+                "position": [
+                    501.0,
+                    0.0,
+                    2.0
+                ],
+                "color": [
+                    0.035,
+                    0.016,
+                    0.29,
+                    1.0
+                ],
+                "size": [
+                    1.0,
+                    500.0,
+                    2.0
+                ],
+                "tags": [
+                    "Border"
+                ]
+            },
+            "border_3/border": {
+                "name": "border_3/border",
+                "type": null,
+                "class": "Border",
+                "position": [
+                    -501.0,
+                    0.0,
+                    2.0
+                ],
+                "color": [
+                    0.035,
+                    0.016,
+                    0.29,
+                    1.0
+                ],
+                "size": [
+                    1.0,
+                    500.0,
+                    2.0
+                ],
+                "tags": [
+                    "Border"
+                ]
+            },
+            "agentplaceholder/agentplaceholder": {
+                "name": "agentplaceholder/agentplaceholder",
+                "type": null,
+                "class": "BoxAgent",
+                "position": [
+                    -250.0,
+                    0.0,
+                    3.0
+                ],
+                "color": [
+                    0.949,
+                    0.7451,
+                    0.1333,
+                    1.0
+                ],
+                "size": [
+                    0.5,
+                    0.5,
+                    0.5
+                ],
+                "tags": [
+                    "Agent"
+                ]
+            }
+        }
+    },
+    "areas": {
+        "Area1": {
+            "configuration": {},
+            "objects": {
+                "placeholder_box/placeholder_box": {
+                    "name": "placeholder_box/placeholder_box",
+                    "type": null,
+                    "class": "Box",
+                    "position": [
+                        -236.91935,
+                        52.60540000000003,
+                        0.5
+                    ],
+                    "color": [
+                        0.949,
+                        0.7451,
+                        0.1333,
+                        1.0
+                    ],
+                    "size": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "tags": [
+                        "Placeholder"
+                    ]
+                }
+            }
+        },
+        "Area2": {
+            "configuration": {},
+            "objects": {
+                "stone/stone": {
+                    "name": "stone/stone",
+                    "type": null,
+                    "class": "Stone",
+                    "position": [
+                        342.8656,
+                        458.36699999999996,
+                        0.1
+                    ],
+                    "color": [
+                        1.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "size": [
+                        0.1,
+                        0.1,
+                        2.0
+                    ],
+                    "tags": [
+                        "Distractor"
+                    ]
+                }
+            }
+        }
+    }
+}

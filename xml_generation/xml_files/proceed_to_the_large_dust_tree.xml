@@ -1,0 +1,51 @@
+<mujoco model="unnamed_model">
+  <default>
+    <default class="/" />
+    <default class="border/" />
+    <default class="border_1/" />
+    <default class="border_2/" />
+    <default class="border_3/" />
+    <default class="agentplaceholder/" />
+    <default class="placeholder_box/" />
+    <default class="stone/" />
+  </default>
+  <worldbody>
+    <body name="border/">
+      <body name="border/border" pos="0 501 2">
+        <geom name="border/border_geom" class="border/" type="box" size="500 1 2" rgba="0.035000000000000003 0.016 0.28999999999999998 1" />
+      </body>
+    </body>
+    <body name="border_1/">
+      <body name="border_1/border" pos="0 -501 2">
+        <geom name="border_1/border_geom" class="border_1/" type="box" size="500 1 2" rgba="0.035000000000000003 0.016 0.28999999999999998 1" />
+      </body>
+    </body>
+    <body name="border_2/">
+      <body name="border_2/border" pos="501 0 2">
+        <geom name="border_2/border_geom" class="border_2/" type="box" size="1 500 2" rgba="0.035000000000000003 0.016 0.28999999999999998 1" />
+      </body>
+    </body>
+    <body name="border_3/">
+      <body name="border_3/border" pos="-501 0 2">
+        <geom name="border_3/border_geom" class="border_3/" type="box" size="1 500 2" rgba="0.035000000000000003 0.016 0.28999999999999998 1" />
+      </body>
+    </body>
+    <body euler="0 0 77.435787460281119" name="agentplaceholder/">
+      <joint name="agentplaceholder/boxagent_freeJoint/" class="/" type="free" />
+      <body name="agentplaceholder/agentplaceholder" pos="-250 0 3" euler="0 0 0">
+        <geom name="agentplaceholder/boxagent_geom" class="agentplaceholder/" type="box" size="0.5 0.5 0.5" rgba="0.94899999999999995 0.74509999999999998 0.1333 1" euler="0 0 0" />
+      </body>
+    </body>
+    <body name="placeholder_box/">
+      <body name="placeholder_box/placeholder_box" pos="-235.08384999999998 -241.47770000000003 0.5" euler="0 0 -164.32449555281889">
+        <geom name="placeholder_box/box_geom" class="placeholder_box/" type="box" size="0.5 0.5 0.5" rgba="0.94899999999999995 0.74509999999999998 0.1333 1" euler="0 0 0" />
+      </body>
+    </body>
+    <body name="stone/">
+      <body name="stone/stone" pos="367.68195000000003 -248.3751 0.10000000000000001" euler="0 0 -165.47087438632812">
+        <geom name="stone/stone_geom" class="stone/" type="box" size="0.10000000000000001 0.10000000000000001 2" rgba="1 0 0 1" />
+      </body>
+    </body>
+    <geom name="base_plane" class="/" type="plane" size="500 500 0.10000000000000001" />
+  </worldbody>
+</mujoco>

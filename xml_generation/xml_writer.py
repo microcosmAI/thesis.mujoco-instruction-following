@@ -41,15 +41,38 @@ def write_yaml_entry(entry, yaml_output_path, object_pool):
                 {"place": True},
                 {"tags": ["Border"]},
             ],
-            "Objects": {},
-        }
+            "Objects": {
+                "AgentPlaceholder": [
+                        {"xml_name": "BoxAgent.xml"},
+                        {"amount": 1},
+                        {"z_rotation_range": [-180, 180]},
+                        {"coordinates": [[25, 50, 3]]}, # TODO test placement of agent
+                        {"tags": ["Agent"]},
+                ],
+            },
+        },
+        "Areas": {
+            "Area1": {
+                "Objects": {
+                    # TODO place agent here if random placement is needed
+                    "placeholder_box": [
+                        {"xml_name": "Box.xml"}, 
+                        {"amount": [1, 1]},
+                        {"z_rotation_range": [-180, 180]},
+                        {"tags": ["Placeholder"]},
+                    ],
+                },
+            },
+            "Area2": {
+                "Objects": {},
+            },
+        },
     }
 
-    # Add five specific objects
-    for i in range(0, 1):
-        # TODO change the coordinates to be in range for my env
-        coordinate_range1 = "[[1., 1., 3.], [32., 32., 3.]]"
-        coordinate_range2 = "[[13., 13., 3.], [14., 14., 3.]]"
+    
+
+    # Add target object and four distractors
+    for i in range(0, 4):
 
         # Note: xml_name refers to the name of the xml object that gets loaded (providing the object shape)
         if i == 0:
@@ -61,15 +84,13 @@ def write_yaml_entry(entry, yaml_output_path, object_pool):
 
             obj_structure = [
                 {"xml_name": f"{xml_name}"},
-                {"amount": 2},
+                {"amount": [1, 1]}, # Needs to be a range for PITA to generate a random position
                 {"z_rotation_range": [-180, 180]},
                 {"tags": ["Target"]},
-                {
-                    "coordinates": coordinate_range1
-                },  # TODO put in coordinates that are in range for my env
             ]
+
         elif i == 1:
-            # Add one distractor of the same shape as the target object (will get a different color later)
+            # Gurarantee one distractor of the same shape as the target object (will get a different color later)
             if "shape" in entry and "xml_name" in entry["shape"]:
                 xml_name = entry["shape"]["xml_name"]
             else:
@@ -77,39 +98,30 @@ def write_yaml_entry(entry, yaml_output_path, object_pool):
 
             obj_structure = [
                 {"xml_name": f"{xml_name}"},
-                {"amount": 3},
+                {"amount": [1, 1]},
                 {"z_rotation_range": [-180, 180]},
-                {
-                    "coordinates": coordinate_range2
-                },  # TODO put in coordinates that are in range for my env
                 {"tags": ["Distractor"]},
             ]
 
         else:
-            # Add objects of other shapes (if there are enough in the object pool)
-            if len(object_pool) > 1:
-                # pick random object from object pool, but not the target object
-                while True:
-                    xml_name = object_pool[np.random.randint(len(object_pool))]
-                    if xml_name != entry["shape"]["xml_name"]:
-                        break
-
-            #TODO if there are not enough objects in the object pool, we need to add more objects of the same type as the target object
-                    # These should get a number after their name, e.g. "apple1", "apple2", etc.
-            
+            if "shape" in entry and "xml_name" in entry["shape"]:
+                xml_name = entry["shape"]["xml_name"]
 
             obj_structure = [
                 {"xml_name": f"{xml_name}"},
-                {"amount": 1},
+                {"amount": [1, 1]},
                 {"z_rotation_range": [-180, 180]},
-                {
-                    "coordinates": coordinate_range2
-                },  # TODO put in coordinates that are in range for my env
                 {"tags": ["Distractor"]},
             ]
 
+            # Add distractors of different shape using PITAs object randomization
+            non_target_shapes = [shape for shape in object_pool if shape != xml_name]
+
+            if len(non_target_shapes) > 0:
+                obj_structure.append({"asset_pool": non_target_shapes})
+
         obj_name = xml_name.split(".")[0]
-        yaml_data["Environment"]["Objects"][obj_name] = obj_structure
+        yaml_data["Areas"]["Area2"]["Objects"][obj_name] = obj_structure
 
     # Get filename from prompt
     entry_name = entry["prompt"].replace(" ", "_").lower()
