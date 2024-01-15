@@ -165,8 +165,7 @@ def write_xml_entry(entry, yaml_output_path, xml_object_path, xml_output_path):
         yaml_output_path, entry["prompt"].replace(" ", "_").lower() + ".yml"
     )
     xml_path = os.path.join(
-        xml_output_path, entry["prompt"].replace(" ", "_").lower() + ".xml"
-    )
+        xml_output_path, entry["prompt"].replace(" ", "_").lower())
 
     xml_object_path = os.path.join(xml_object_path)
 
