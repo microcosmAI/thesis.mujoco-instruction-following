@@ -1,8 +1,3 @@
-# Generates a .json file of instructions (including which targets would be correct given each instruction) based on which variables are chosen
-
-# TODO load objects, colors, and prompts numbers
-# TODO make sure required values are set as required params
-
 import json
 import os
 import xml.etree.ElementTree as ET
@@ -18,7 +13,7 @@ def read_colors(json_file):
 
     Returns:
         list: list of dicts, structured {"name": name, "rgb": rgb value}
-    """    
+    """
     with open(json_file, "r") as file:
         data = json.load(file)
 
@@ -32,11 +27,22 @@ def read_colors(json_file):
 
 
 def generate_color_list(json_file, color_amount):
+    """Returns the first color_amount colors from a list of colors"""
+
     colors = read_colors(json_file)
     return colors[:color_amount]
 
 
 def read_mujoco_shapes(directory):
+    """Reads all .xml files in a directory and returns a list of dicts with the model attribute and the filename
+
+    Args:
+        directory (str): path to directory containing .xml files
+
+    Returns:
+        list: list of dicts, structured {"model": model attribute, "xml_name": filename}
+    """
+
     shapes = []
     for filename in os.listdir(directory):
         if filename.endswith(".xml"):
@@ -50,6 +56,8 @@ def read_mujoco_shapes(directory):
 
 
 def generate_shape_list(directory, shape_amount):
+    """Returns a list of dicts of the first shape_amount shapes in a directory"""
+
     shapes = read_mujoco_shapes(directory)
     return shapes[:shape_amount]
 
@@ -64,6 +72,7 @@ def read_instructions_by_type(json_file, instr_type):
     Returns:
         list: list of dicts, all instruction elements of instr_type
     """
+
     with open(json_file, "r") as file:
         data = json.load(file)
 
@@ -77,13 +86,17 @@ def read_instructions_by_type(json_file, instr_type):
 
 
 def generate_instr_list_by_type(json_file, instr_type, instr_amount):
+    """Returns a list of dicts of the first instr_amount instructions of type instr_type"""
+
     instructions = read_instructions_by_type(json_file, instr_type)
     return instructions[:instr_amount]
 
 
 def generate_size_modifiers(size_amount, size_modifier_list):
+    """Returns a list of size modifiers of length size_amount"""
+
     if size_amount == 1 or size_amount == 0:
-        return []
+        return [""]
     else:
         return size_modifier_list[:size_amount]
 
@@ -91,17 +104,16 @@ def generate_size_modifiers(size_amount, size_modifier_list):
 def calculate_total_variations(
     shape_amount, instruction_amounts, color_amount, size_amount
 ):
-    # TODO update docstring
-    """Multiply the length of all lists to get the amount of total possible variations
+    """Calculates the total amount of variations that can be made from the given parameters
 
-    Args: OUTDATED
-        shape_list (list): list of shapes for prompt generation
-        *instruction_lists (list): list of lists, each containing instructions of one type
-        color_list (list): list of colors for prompt generation
-        size_list (list): list of sizes for prompt generation
+    Args:
+        shape_amount (int): amount of shapes
+        instruction_amounts (int or list): amount of instructions (can be list of ints if multiple instruction types are used)
+        color_amount (int): amount of colors
+        size_amount (int): amount of size modifiers
 
     Returns:
-        int: Length of all args (if non-zero), multiplied (*instruction_lists handled like a single list)
+        int: total amount of variations
     """
 
     list_lengths = [shape_amount, color_amount, size_amount]
@@ -114,7 +126,9 @@ def calculate_total_variations(
     elif type(instruction_amounts) == int:
         list_lengths.append(instruction_amounts)
     else:
-        raise TypeError  # TODO implement errors
+        raise TypeError(
+            f"Expected instruction_amounts to be int or list, got {type(instruction_amounts)}"
+        )
 
     # Multiply all non-0 values
     result = 1
@@ -125,7 +139,17 @@ def calculate_total_variations(
 
 
 def generate_prompt_dicts(color_list, shape_list, instruction_list, size_list):
-    # TODO handle exception for sizes 0 and 1
+    """Generates a list of dicts of all possible combinations of the given lists
+
+    Args:
+        color_list (list): list of color dicts
+        shape_list (list): list of shape dicts
+        instruction_list (list): list of instruction dicts
+        size_list (list): list of size modifier strings
+
+    Returns:
+        list: list of dicts, structured {"instruction": instruction, "size": size, "color": color, "shape": shape, "prompt": prompt_string}
+    """
 
     # Generate list of dicts of all combinations
     instruction_list = [
@@ -148,16 +172,21 @@ def generate_prompt_dicts(color_list, shape_list, instruction_list, size_list):
         color_name = entry["color"]["name"]
         shape_model = entry["shape"]["model"]
 
-        prompt_string = f"{instruction_value} the {size_value} {color_name} {shape_model}"
+        prompt_string = (
+            f"{instruction_value} the {size_value} {color_name} {shape_model}"
+        )
+
+        # Replace double spaces (for when there is no size modifier)
+        prompt_string = prompt_string.replace("  ", " ")
 
         entry["prompt"] = prompt_string
-
 
     return prompt_list
 
 
 def export_to_json(prompt_dicts, output_filepath):
-    # TODO add docstring
+    """Write a list of prompt dicts to a .json file"""
+
     with open(output_filepath, "w") as json_file:
         json.dump(prompt_dicts, json_file)
 
@@ -287,10 +316,6 @@ def main():
         ):
             break
 
-    # TODO consider what goes here: call the "generate " functions to generate lists of the lengths
-    # i want, or just shorten the lists I already have.
-    # also, is the format for the instructions okay (being list instead of list of dicts like all the others?)
-
     combinations = generate_prompt_dicts(
         color_list=generate_color_list(
             json_file=color_filepath, color_amount=color_amount
@@ -311,9 +336,12 @@ def main():
         ],
     )
 
-    print(combinations) # for debugging
+    print(combinations)  # for debugging
 
-    export_to_json(output_filepath=output_filepath, prompt_dicts=combinations) #TODO change output filepath var name
+    export_to_json(
+        output_filepath=output_filepath, prompt_dicts=combinations
+    )  # TODO change output filepath var name
+
 
 if __name__ == "__main__":
     main()
