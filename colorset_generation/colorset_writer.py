@@ -20,10 +20,10 @@ def hex_to_rgba(hex_color):
     """Returns the RGBA tuple corresponding to a hex color code without alpha (sets alpha = 1.0))"""
 
     hex_color = hex_color.lstrip("#")
-    return tuple(int(hex_color[i:i+2], 16) / 255.0 for i in (0, 2, 4)) + (1.0,)
+    return tuple(int(hex_color[i : i + 2], 16) / 255.0 for i in (0, 2, 4)) + (1.0,)
 
 
-def format_output(colors, output_format, color_format, max_words):
+def format_output(colors, output_format, color_format, max_words, output_path):
     """Stores colors in the selected format
 
     Args:
@@ -46,8 +46,8 @@ def format_output(colors, output_format, color_format, max_words):
 
         formatted_colors.append({"name": name, "code": code})
 
-    output_filename = f"output_{max_words}words_{color_format}"
-    output_path = os.path.join("output", output_filename)
+    output_filename = f"colors_{max_words}words_{color_format}"
+    output_path = os.path.join(output_path, output_filename)
 
     if output_format == "csv":
         with open(output_path + ".csv", "w", newline="") as csvfile:
@@ -64,15 +64,42 @@ def format_output(colors, output_format, color_format, max_words):
             json.dump(formatted_colors, jsonfile, indent=2)
 
 
-if __name__ == "__main__":
-    with open("data/rgb.txt", "r") as file:
+def generate_colorset(
+    max_words, output_format, color_format, dataset_path, output_path
+):
+    """Generates a colorset with the given parameters
+
+    Args:
+        max_words (int): maximum number of words in a color name
+        output_format (str): csv, txt or json for the file format
+        color_format (str): hex or rgb for the color format
+
+    Returns:
+        none
+    """
+    with open(dataset_path, "r") as file:
         colors = file.readlines()[1:]  # Ignore the first line
 
+    filtered_colors = filter_by_word_count(colors=colors, max_words=max_words)
+
+    format_output(
+        colors=filtered_colors,
+        output_format=output_format,
+        color_format=color_format,
+        max_words=max_words,
+        output_path=output_path,
+    )
+
+
+def main():
     max_words = int(input("Enter the maximum number of words for colors: "))
     output_format = input("Enter the output format (csv, txt, json): ")
     color_format = input("Enter the color format (hex, rgb, rgba): ")
 
-    filtered_colors = filter_by_word_count(colors, max_words)
-    format_output(filtered_colors, output_format, color_format, max_words)
+    generate_colorset(max_words, output_format, color_format)
 
     print(f"Output saved in {output_format} format in the 'output' directory.")
+
+
+if __name__ == "__main__":
+    main()
