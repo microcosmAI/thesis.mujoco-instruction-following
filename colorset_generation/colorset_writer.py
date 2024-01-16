@@ -4,29 +4,23 @@ import os
 
 
 def filter_by_word_count(colors, max_words):
-    """Returns list of all colors which have fewer than max_words in their name
+    """Returns list of all colors which have fewer than max_words in their name"""
 
-    Args:
-        colors (list): colors as stored in the dataset
-        max_words (int): threshold value for filtering
-
-    Returns:
-        list: all colors with fewer than max_words in their name
-    """
     return [color for color in colors if len(color.split()) <= (max_words + 1)]
 
 
 def hex_to_rgb(hex_color):
-    """Converts a hexadecimal color code to an RGB tuple.
+    """Returns the RGB tuple corresponding to a hex color code"""
 
-    Args:
-        hex_color (str): A hexadecimal color code
-
-    Returns:
-        tuple: The color code converted to RGB
-    """
     hex_color = hex_color.lstrip("#")
     return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+
+
+def hex_to_rgba(hex_color):
+    """Returns the RGBA tuple corresponding to a hex color code without alpha (sets alpha = 1.0))"""
+
+    hex_color = hex_color.lstrip("#")
+    return tuple(int(hex_color[i:i+2], 16) / 255.0 for i in (0, 2, 4)) + (1.0,)
 
 
 def format_output(colors, output_format, color_format, max_words):
@@ -47,6 +41,8 @@ def format_output(colors, output_format, color_format, max_words):
             code = code.strip()
         elif color_format == "rgb":
             code = hex_to_rgb(code)
+        elif color_format == "rgba":
+            code = hex_to_rgba(code)
 
         formatted_colors.append({"name": name, "code": code})
 
@@ -74,7 +70,7 @@ if __name__ == "__main__":
 
     max_words = int(input("Enter the maximum number of words for colors: "))
     output_format = input("Enter the output format (csv, txt, json): ")
-    color_format = input("Enter the color format (hex, rgb): ")
+    color_format = input("Enter the color format (hex, rgb, rgba): ")
 
     filtered_colors = filter_by_word_count(colors, max_words)
     format_output(filtered_colors, output_format, color_format, max_words)
