@@ -28,6 +28,7 @@ import os
 import sys
 import xml.etree.ElementTree as ET
 import argparse
+import shutil
 
 
 # Import all necessary modules
@@ -70,16 +71,49 @@ def get_custom_level_parameters():
 
 
 def generate_level(
-    level_number, color_amount, shape_amount, size_amount, instr_amounts, output_path
-):
+    level_number, colorset, color_amount, shape_amount, size_amount, instr_amounts, curriculum_dir_path, instr_types):
+    # TODO generate prompts, xmls, and ymls for a single level
     print(f"Generating level {level_number}...")
     print("color_amount:", color_amount)
     print("shape_amount:", shape_amount)
     print("size_amount:", size_amount)
     print("instr_amounts:", instr_amounts)
 
+    level_folder = f"level_{level_number}"
+    level_dir_path = os.path.join(curriculum_dir_path, level_folder)
 
-def generate_curriculum(output_path, level_parameters):
+    if os.path.exists(level_dir_path):
+        shutil.rmtree(level_dir_path)
+    os.mkdir(level_dir_path) # TODO incorporate this logic into all relevant scripts
+
+    # prompts file path is curriculum_dir_path/level_dir_path/prompts/prompts.json
+    prompts_file_path = os.path.join(level_dir_path, "prompts", "prompts.json")
+    # os.makedirs(os.path.dirname(prompts_file_path), exist_ok=True)
+
+    # generate colorset. colorset path is 
+    # generate prompts. prompt path is curriculum_dir_path/level_dir_path/prompts/prompts.json
+    prompt_writer.generate_prompts(
+        colorset=colorset,
+        prompts_file_path=prompts_file_path,
+        color_amount=color_amount,
+        shape_amount=shape_amount,
+        size_amount=size_amount,
+        instr_amounts=instr_amounts,
+    )
+
+    # xml path for the level is curriculum_dir_path/level_dir_path/xml
+
+
+    # yml path for the level is curriculum_dir_path/level_folder/yml 
+    
+
+    
+
+
+    # generate prompts. prompt path is  
+
+
+def generate_curriculum(curriculum_dir_path, level_parameters):
     # iterate over level_parameters, which is a dict of lists of ints. The keys are the parameters for the generate_level function.
     # within this function, call generate_level with the parameters from the dict
 
@@ -96,7 +130,7 @@ def generate_curriculum(output_path, level_parameters):
             shape_amount,
             size_amount,
             instr_amounts,
-            output_path,
+            curriculum_dir_path,
         )
 
 
@@ -112,16 +146,18 @@ def move_test_levels(test_levels, output_path):
 
 
 def main():
-    xkcd_dataset_file_path = os.path.join(os.getcwd(), "data", "xkcd_color_dataset.txt")
-    color_file_path = os.path.join(os.getcwd(), "data", "colors.json")
-    prompts_file_path = os.path.join(os.getcwd(), "data", "prompts.json")
+    xkcd_dataset_file_path = os.path.join(os.getcwd(), "data", "color_data", "rgb.txt")
+    colorset_file_path = os.path.join(os.getcwd(), "data", "color_data", "colors.json")
+    prompts_file_path = os.path.join(os.getcwd(), "data", "prompt_data", "prompts.json")
     curriculum_dir_path = os.path.join(
         os.getcwd(), "data", "curriculum"
     )  # TODO unify naming convention (dir vs file)
+    xml_object_dir_path = os.path.join(os.getcwd(), "data", "xml_objects")
+    # TODO generate yml folders for each level in the respective level folders
 
     print(xkcd_dataset_file_path)
     # TODO move all files to their respective directories
-    
+
     level_amount = 5
     params = get_default_level_parameters(level_amount)
 
@@ -130,7 +166,7 @@ def main():
         output_format="json",
         color_format="rgba",
         dataset_path=xkcd_dataset_file_path,
-        output_path=color_file_path,
+        output_path=colorset_file_path,
     )
 
     # generate one set of prompts and their corresponding xmls for each level

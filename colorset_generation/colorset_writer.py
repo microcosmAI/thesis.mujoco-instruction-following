@@ -95,10 +95,11 @@ def main():
     max_words = int(input("Enter the maximum number of words for colors: "))
     output_format = input("Enter the output format (csv, txt, json): ")
     color_format = input("Enter the color format (hex, rgb, rgba): ")
+    output_path = os.path.join(os.getcwd(), "output")
 
-    generate_colorset(max_words, output_format, color_format)
+    generate_colorset(max_words, output_format, color_format, output_path)
 
-    print(f"Output saved in {output_format} format in the 'output' directory.")
+    print(f"Output saved in {output_format} format in {output_path}")
 
 
 if __name__ == "__main__":

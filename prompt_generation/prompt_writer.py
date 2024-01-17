@@ -62,7 +62,7 @@ def generate_shape_list(directory, shape_amount):
     return shapes[:shape_amount]
 
 
-def read_instructions_by_type(json_file, instr_type):
+def read_instructions_by_type(instr_file_path, instr_type):
     """Reads a json file with "instr_type: instruction" formatted values. Returns a list of dicts of those instructions that are of type instr_type
 
     Args:
@@ -73,7 +73,7 @@ def read_instructions_by_type(json_file, instr_type):
         list: list of dicts, all instruction elements of instr_type
     """
 
-    with open(json_file, "r") as file:
+    with open(instr_file_path, "r") as file:
         data = json.load(file)
 
     filtered_instructions = []
@@ -85,10 +85,10 @@ def read_instructions_by_type(json_file, instr_type):
     return filtered_instructions
 
 
-def generate_instr_list_by_type(json_file, instr_type, instr_amount):
+def generate_instr_list_by_type(instr_file_path, instr_type, instr_amount):
     """Returns a list of dicts of the first instr_amount instructions of type instr_type"""
 
-    instructions = read_instructions_by_type(json_file, instr_type)
+    instructions = read_instructions_by_type(instr_file_path, instr_type)
     return instructions[:instr_amount]
 
 
@@ -193,17 +193,71 @@ def export_to_json(prompt_dicts, output_filepath):
     print(f"Prompts have been written to{output_filepath}")
 
 
+def generate_prompts(
+    colorset,
+    prompts_file_path,
+    xml_objects_file_path,
+    size_modifier_list,
+    color_amount,
+    shape_amount,
+    size_amount,
+    instr_amounts,
+    instr_types, 
+):
+    """Generates a prompts.json file in the prompts_file_path directory based on the given parameters
+
+    Args:
+        colorset (list): list of dicts, structured {"name": name, "code": code}
+        prompts_file_path (str): path to prompts.json file
+        color_amount (int): amount of colors
+        shape_amount (int): amount of shapes
+        size_amount (int): amount of size modifiers
+        instr_amounts (list): list of ints, amount of instructions for each type
+
+    Returns:
+        none
+    """
+
+    # Generate lists of colors, shapes, sizes and instructions
+    color_list = generate_color_list(colorset=colorset, color_amount=color_amount)
+    shape_list = generate_shape_list(
+        directory=xml_objects_file_path, shape_amount=shape_amount
+    )
+    size_list = generate_size_modifiers(
+        size_amount=size_amount, size_modifier_list=size_modifier_list
+    )
+    instruction_list = [
+        generate_instr_list_by_type(
+            json_file=instr_file_path,
+            instr_type=instr_type,
+            instr_amount=instr_amount,
+        )
+        for instr_type, instr_amount in zip(instr_types, instr_amounts)
+    ]
+
+    # Generate list of dicts of all combinations
+    prompt_list = generate_prompt_dicts(
+        color_list=color_list,
+        shape_list=shape_list,
+        size_list=size_list,
+        instruction_list=instruction_list,
+    )
+
+    # Write list of dicts to prompts.json
+    export_to_json(output_filepath=prompts_file_path, prompt_dicts=prompt_list)
+
+
 def main():
     # Data to build instructions from
     color_filepath = "./data/colors/output_1words_rgb.json"
-    xml_directory_filepath = "./data/objects"
+    xml_object_dir_path = "./data/objects"
     instr_file_path = "./data/instructions/instructions.txt"
     instr_types = ["approach", "avoid"]
     output_filepath = "./output/prompts.json"
 
     size_modifier_list = ["large", "small", "huge", "tiny"]
     color_list = read_colors(color_filepath)
-    shape_list = read_mujoco_shapes(xml_directory_filepath)
+    shape_list = read_mujoco_shapes(xml_object_dir_path)
     instr_lists = [
         read_instructions_by_type(instr_file_path, instr_type)
         for instr_type in instr_types
@@ -321,7 +375,7 @@ def main():
             json_file=color_filepath, color_amount=color_amount
         ),
         shape_list=generate_shape_list(
-            directory=xml_directory_filepath, shape_amount=shape_amount
+            directory=xml_object_dir_path, shape_amount=shape_amount
         ),
         size_list=generate_size_modifiers(
             size_amount=size_amount, size_modifier_list=size_modifier_list
@@ -336,11 +390,7 @@ def main():
         ],
     )
 
-    print(combinations)  # for debugging
-
-    export_to_json(
-        output_filepath=output_filepath, prompt_dicts=combinations
-    )  # TODO change output filepath var name
+    export_to_json(output_filepath=output_filepath, prompt_dicts=combinations)
 
 
 if __name__ == "__main__":
