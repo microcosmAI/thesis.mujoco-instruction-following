@@ -166,7 +166,7 @@ def main():
     curriculum_dir_path = os.path.join(
         os.getcwd(), "data", "curriculum"
     )  # TODO unify naming convention (dir vs file)
-    xml_object_dir_path = os.path.join(os.getcwd(), "data", "xml_objects")
+    xml_object_dir_path = os.path.join(os.getcwd(), "data", "objects")
     instr_file_path = os.path.join(os.getcwd(), "data", "prompt_data", "instructions.txt")
     instr_types = ["approach", "avoid"]
 
@@ -214,11 +214,12 @@ def main():
         )
 
         # generate xmls
+        # TODO find out why this doesn't work
         xml_writer.write_environments(
             prompts_file_path=prompts_file_path,
-            yml_output_path=level_dir_path,
-            xml_output_path=level_dir_path,
-            xml_object_path=os.path.join(os.getcwd(), "data", "objects"),
+            yml_output_dir_path=level_dir_path,
+            xml_output_dir_path=level_dir_path,
+            xml_object_dir_path=xml_object_dir_path
         )
 
     #generate_curriculum(curriculum_dir_path, params)

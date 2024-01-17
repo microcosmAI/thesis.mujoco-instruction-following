@@ -20,17 +20,18 @@ import numpy as np
 from pita_algorithm.pita import PITA
 
 
-def write_yml_entry(entry, yml_output_path, object_pool):
+def write_yml_entry(entry, yml_output_dir_path, object_pool):
     """Write a single yml file based on one entry in the json file
 
     Args:
         entry (dict): Entry describing the target object and prompt
-        yml_output_path (str): Path to output directory
+        yml_output_dir_path (str): Path to output directory
         object_pool (list): List of all object types that occur in the json file
 
     Raises:
         ValueError: If no object shape is found in the entry
     """
+
     # Define the fixed structure for the yml file
     yml_data = {
         "Environment": {
@@ -43,11 +44,11 @@ def write_yml_entry(entry, yml_output_path, object_pool):
             ],
             "Objects": {
                 "AgentPlaceholder": [
-                        {"xml_name": "BoxAgent.xml"},
-                        {"amount": 1},
-                        {"z_rotation_range": [-180, 180]},
-                        {"coordinates": [[25, 50, 3]]}, # TODO test placement of agent
-                        {"tags": ["Agent"]},
+                    {"xml_name": "BoxAgent.xml"},
+                    {"amount": 1},
+                    {"z_rotation_range": [-180, 180]},
+                    {"coordinates": [[25, 50, 3]]},  # TODO test placement of agent
+                    {"tags": ["Agent"]},
                 ],
             },
         },
@@ -56,7 +57,7 @@ def write_yml_entry(entry, yml_output_path, object_pool):
                 "Objects": {
                     # TODO place agent here if random placement is needed
                     "placeholder_box": [
-                        {"xml_name": "Box.xml"}, 
+                        {"xml_name": "Box.xml"},
                         {"amount": [1, 1]},
                         {"z_rotation_range": [-180, 180]},
                         {"tags": ["Placeholder"]},
@@ -69,11 +70,8 @@ def write_yml_entry(entry, yml_output_path, object_pool):
         },
     }
 
-    
-
     # Add target object and four distractors
     for i in range(0, 4):
-
         # Note: xml_name refers to the name of the xml object that gets loaded (providing the object shape)
         if i == 0:
             # Add one target object based on the json entry, with target shape
@@ -84,7 +82,9 @@ def write_yml_entry(entry, yml_output_path, object_pool):
 
             obj_structure = [
                 {"xml_name": f"{xml_name}"},
-                {"amount": [1, 1]}, # Needs to be a range for PITA to generate a random position
+                {
+                    "amount": [1, 1]
+                },  # Needs to be a range for PITA to generate a random position
                 {"z_rotation_range": [-180, 180]},
                 {"tags": ["Target"]},
             ]
@@ -120,15 +120,15 @@ def write_yml_entry(entry, yml_output_path, object_pool):
             if len(non_target_shapes) > 0:
                 obj_structure.append({"asset_pool": non_target_shapes})
 
-        obj_name = xml_name.split(".")[0]      
-        obj_name = f"{obj_name}{i}" # avoid duplicates
+        obj_name = xml_name.split(".")[0]
+        obj_name = f"{obj_name}{i}"  # avoid duplicates
         yml_data["Areas"]["Area2"]["Objects"][obj_name] = obj_structure
 
     # Get filename from prompt
     entry_name = entry["prompt"].replace(" ", "_").lower()
-    yml_output_path = os.path.join(yml_output_path, f"{entry_name}.yml")
+    yml_output_file_path = os.path.join(yml_output_dir_path, f"{entry_name}.yml")
 
-    os.makedirs(os.path.dirname(yml_output_path), exist_ok=True)
+    os.makedirs(os.path.dirname(yml_output_file_path), exist_ok=True)
 
     # with open(yml_output_path, 'w') as yml_file:
     #    yaml.dump(yml_data, yml_file, default_flow_style=None, indent=2)
@@ -140,16 +140,18 @@ def write_yml_entry(entry, yml_output_path, object_pool):
     yml_str = yml_str.replace("{", "").replace("}", "").replace("'", "")
 
     # Write the modified yml string to file
-    with open(yml_output_path, "w") as yml_file:
+    with open(yml_output_file_path, "w") as yml_file:
         yml_file.write(yml_str)
 
 
-def write_environments(prompts_file_path, yml_output_path, xml_output_path, xml_object_path):
-    """Generates xml files in xml_output_path based on the entries in the json file
+def write_environments(
+    prompts_file_path, yml_output_dir_path, xml_output_dir_path, xml_object_dir_path
+):
+    """Generates xml files in xml_output_dir_path based on the entries in the json file
 
     Args:
-        yml_output_path (str): path to yml directory
-        xml_output_path (str): path to output directory
+        yml_output_dir_path (str): path to yml directory
+        xml_output_dir_path (str): path to output directory
 
     Returns:
         none
@@ -158,36 +160,42 @@ def write_environments(prompts_file_path, yml_output_path, xml_output_path, xml_
         data = json.load(f)
 
     object_pool = get_object_pool(data)
+    
+    if len(data) == 0:
+        raise ValueError("No prompts found in prompts file")
 
     for entry in data:
         write_yml_entry(
-            entry=entry, yml_output_path=yml_output_path, object_pool=object_pool
+            entry=entry,
+            yml_output_dir_path=yml_output_dir_path,
+            object_pool=object_pool,
         )
         write_xml_entry(
             entry=entry,
-            yml_output_path=yml_output_path,
-            xml_output_path=xml_output_path,
-            xml_object_path=xml_object_path,
+            yml_output_dir_path=yml_output_dir_path,
+            xml_output_dir_path=xml_output_dir_path,
+            xml_object_dir_path=xml_object_dir_path,
         )
 
+def write_xml_entry(entry, yml_output_dir_path, xml_object_dir_path, xml_output_dir_path):
+    """Generates a single xml file based on a single yml file, using details from the json file containing the prompts"""
 
-def write_xml_entry(entry, yml_output_path, xml_object_path, xml_output_path):
-    """Generates a single xml file based on a single yml file, as well as the details from the json file"""
     # get yml/xml filenames from json entry
-    yml_path = os.path.join(
-        yml_output_path, entry["prompt"].replace(" ", "_").lower() + ".yml"
+    yml_file_path = os.path.join(
+        yml_output_dir_path, entry["prompt"].replace(" ", "_").lower() + ".yml"
     )
-    xml_path = os.path.join(
-        xml_output_path, entry["prompt"].replace(" ", "_").lower())
+    xml_file_path = os.path.join(
+        xml_output_dir_path, entry["prompt"].replace(" ", "_").lower()
+    )
 
-    xml_object_path = os.path.join(xml_object_path)
+    xml_object_dir_path = os.path.join(xml_object_dir_path)
 
     # call PITA
     PITA().run(
         random_seed=None,
-        config_path=yml_path,
-        xml_dir=xml_object_path,
-        export_path=xml_path,
+        config_path=yml_file_path,
+        xml_dir=xml_object_dir_path,
+        export_path=xml_file_path,
         plot=False,
     )
 
@@ -212,19 +220,19 @@ def get_object_pool(data):
 def main():
     # Define paths
     json_file = os.path.join("json_files", "prompts.json")
-    yml_output_path = os.path.join("yml_files")
-    xml_output_path = os.path.join("xml_files")
-    xml_object_path = os.path.join("xml_objects")
+    yml_output_dir_path = os.path.join("yml_files")
+    xml_output_dir_path = os.path.join("xml_files")
+    xml_object_dir_path = os.path.join("objects")
 
     # Write ymls and xmls
-    print("Using objects stored at", xml_object_path)
-    print("Writing ymls at", yml_output_path)
-    print("Writing xmls at", xml_output_path)
+    print("Using objects stored at", xml_object_dir_path)
+    print("Writing ymls at", yml_output_dir_path)
+    print("Writing xmls at", xml_output_dir_path)
     write_environments(
         json_file=json_file,
-        yml_output_path=yml_output_path,
-        xml_output_path=xml_output_path,
-        xml_object_path=xml_object_path,
+        yml_output_dir_path=yml_output_dir_path,
+        xml_output_dir_path=xml_output_dir_path,
+        xml_object_dir_path=xml_object_dir_path,
     )
 
 

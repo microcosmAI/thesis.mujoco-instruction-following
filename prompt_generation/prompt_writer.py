@@ -243,10 +243,11 @@ def write_prompts(
         instruction_list=instruction_list,
     )
 
-    # Write
-    with open(output_file_path, "w") as json_file:
-        json.dump(prompt_list, json_file)
-
+    try:
+        with open(output_file_path, "w") as json_file:
+            json.dump(prompt_list, json_file)
+    except Exception as e:
+        print(f"An error occurred while writing to the file: {e}")
 
 def main():
     # Data to build instructions from

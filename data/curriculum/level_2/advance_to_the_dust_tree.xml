@@ -1,0 +1,69 @@
+<mujoco model="unnamed_model">
+  <default>
+    <default class="/" />
+    <default class="border/" />
+    <default class="border_1/" />
+    <default class="border_2/" />
+    <default class="border_3/" />
+    <default class="agentplaceholder/" />
+    <default class="placeholder_box/" />
+    <default class="tree0/" />
+    <default class="tree1/" />
+    <default class="tree2/" />
+    <default class="tree3/" />
+  </default>
+  <worldbody>
+    <body name="border/">
+      <body name="border/border" pos="0 501 2">
+        <geom name="border/border_geom" class="border/" type="box" size="500 1 2" rgba="0.035000000000000003 0.016 0.28999999999999998 1" />
+      </body>
+    </body>
+    <body name="border_1/">
+      <body name="border_1/border" pos="0 -501 2">
+        <geom name="border_1/border_geom" class="border_1/" type="box" size="500 1 2" rgba="0.035000000000000003 0.016 0.28999999999999998 1" />
+      </body>
+    </body>
+    <body name="border_2/">
+      <body name="border_2/border" pos="501 0 2">
+        <geom name="border_2/border_geom" class="border_2/" type="box" size="1 500 2" rgba="0.035000000000000003 0.016 0.28999999999999998 1" />
+      </body>
+    </body>
+    <body name="border_3/">
+      <body name="border_3/border" pos="-501 0 2">
+        <geom name="border_3/border_geom" class="border_3/" type="box" size="1 500 2" rgba="0.035000000000000003 0.016 0.28999999999999998 1" />
+      </body>
+    </body>
+    <body euler="0 0 171.87015997028703" name="agentplaceholder/">
+      <joint name="agentplaceholder/boxagent_freeJoint/" class="/" type="free" />
+      <body name="agentplaceholder/agentplaceholder" pos="-250 0 3" euler="0 0 0">
+        <geom name="agentplaceholder/boxagent_geom" class="agentplaceholder/" type="box" size="0.5 0.5 0.5" rgba="0.94899999999999995 0.74509999999999998 0.1333 1" euler="0 0 0" />
+      </body>
+    </body>
+    <body name="placeholder_box/">
+      <body name="placeholder_box/placeholder_box" pos="-220.37374999999997 392.20690000000002 0.5" euler="0 0 -22.622085172940132">
+        <geom name="placeholder_box/box_geom" class="placeholder_box/" type="box" size="0.5 0.5 0.5" rgba="0.94899999999999995 0.74509999999999998 0.1333 1" euler="0 0 0" />
+      </body>
+    </body>
+    <body name="tree0/">
+      <body name="tree0/tree0" pos="307.67905000000007 371.80889999999999 0.10000000000000001" euler="0 0 -132.61382122622049">
+        <geom name="tree0/tree_geom" class="tree0/" type="box" size="0.10000000000000001 0.10000000000000001 2" rgba="1 0 0 1" />
+      </body>
+    </body>
+    <body name="tree1/">
+      <body name="tree1/tree1" pos="364.3766 58.254699999999957 0.10000000000000001" euler="0 0 7.9327568379209765">
+        <geom name="tree1/tree_geom" class="tree1/" type="box" size="0.10000000000000001 0.10000000000000001 2" rgba="1 0 0 1" />
+      </body>
+    </body>
+    <body name="tree2/">
+      <body name="tree2/tree2" pos="231.18000000000001 -237.42070000000001 0.10000000000000001" euler="0 0 129.78164956309644">
+        <geom name="tree2/tree_geom" class="tree2/" type="box" size="0.10000000000000001 0.10000000000000001 2" rgba="1 0 0 1" />
+      </body>
+    </body>
+    <body name="tree3/">
+      <body name="tree3/tree3" pos="165.88454999999999 -227.98759999999999 0.10000000000000001" euler="0 0 -146.35123131172995">
+        <geom name="tree3/tree_geom" class="tree3/" type="box" size="0.10000000000000001 0.10000000000000001 2" rgba="1 0 0 1" />
+      </body>
+    </body>
+    <geom name="base_plane" class="/" type="plane" size="500 500 0.10000000000000001" />
+  </worldbody>
+</mujoco>
