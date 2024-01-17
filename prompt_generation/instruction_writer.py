@@ -117,7 +117,7 @@ def calculate_total_variations(
     """
 
     list_lengths = [shape_amount, color_amount, size_amount]
-    # Handle instruction lists as one, since each prompt only contains one instruction
+    # Handle all instruction lists as one, since each prompt only contains one instruction
     if type(instruction_amounts) == list:
         instr_length = 0
         for i in instruction_amounts:
@@ -336,9 +336,7 @@ def main():
         ],
     )
 
-    export_to_json(
-        output_filepath=output_filepath, prompt_dicts=combinations
-    ) 
+    export_to_json(output_filepath=output_filepath, prompt_dicts=combinations)
 
 
 if __name__ == "__main__":

@@ -5,7 +5,11 @@ import argparse
 from itertools import product
 
 
-def read_colors(json_file):
+# TODO naming convention on the functions below,
+# TODO simplify code (fewer fcts)
+
+
+def read_colors(colorset_file_path):
     """Read color names and RGB values from a .json file
 
     Args:
@@ -14,7 +18,7 @@ def read_colors(json_file):
     Returns:
         list: list of dicts, structured {"name": name, "rgb": rgb value}
     """
-    with open(json_file, "r") as file:
+    with open(colorset_file_path, "r") as file:
         data = json.load(file)
 
     colors = []
@@ -26,10 +30,10 @@ def read_colors(json_file):
     return colors
 
 
-def generate_color_list(json_file, color_amount):
+def generate_color_list(colorset_file_path, color_amount):
     """Returns the first color_amount colors from a list of colors"""
 
-    colors = read_colors(json_file)
+    colors = read_colors(colorset_file_path)
     return colors[:color_amount]
 
 
@@ -151,7 +155,7 @@ def generate_prompt_dicts(color_list, shape_list, instruction_list, size_list):
         list: list of dicts, structured {"instruction": instruction, "size": size, "color": color, "shape": shape, "prompt": prompt_string}
     """
 
-    # Generate list of dicts of all combinations
+    # Handle instructions of different types
     instruction_list = [
         {"type": list(instr_dict.keys())[0], "value": list(instr_dict.values())[0]}
         for sublist in instruction_list
@@ -184,30 +188,24 @@ def generate_prompt_dicts(color_list, shape_list, instruction_list, size_list):
     return prompt_list
 
 
-def export_to_json(prompt_dicts, output_filepath):
-    """Write a list of prompt dicts to a .json file"""
-
-    with open(output_filepath, "w") as json_file:
-        json.dump(prompt_dicts, json_file)
-
-    print(f"Prompts have been written to{output_filepath}")
-
-
-def generate_prompts(
-    colorset,
-    prompts_file_path,
-    xml_objects_file_path,
+def write_prompts(
+    colorset_file_path,
+    output_file_path,
+    xml_objects_dir_path,
+    instr_file_path,
     size_modifier_list,
     color_amount,
     shape_amount,
     size_amount,
     instr_amounts,
-    instr_types, 
+    instr_types,
+    
 ):
-    """Generates a prompts.json file in the prompts_file_path directory based on the given parameters
+    """Generates a file in the prompts_file_path directory based on the given parameters
 
     Args:
-        colorset (list): list of dicts, structured {"name": name, "code": code}
+    # TODO update docstring
+        colorset_file_path (list): list of dicts, structured {"name": name, "code": code}
         prompts_file_path (str): path to prompts.json file
         color_amount (int): amount of colors
         shape_amount (int): amount of shapes
@@ -218,22 +216,24 @@ def generate_prompts(
         none
     """
 
-    # Generate lists of colors, shapes, sizes and instructions
-    color_list = generate_color_list(colorset=colorset, color_amount=color_amount)
-    shape_list = generate_shape_list(
-        directory=xml_objects_file_path, shape_amount=shape_amount
-    )
-    size_list = generate_size_modifiers(
-        size_amount=size_amount, size_modifier_list=size_modifier_list
-    )
+    # Generate lists of instruction, size, color and shape
     instruction_list = [
         generate_instr_list_by_type(
-            json_file=instr_file_path,
+            instr_file_path=instr_file_path,
             instr_type=instr_type,
             instr_amount=instr_amount,
         )
         for instr_type, instr_amount in zip(instr_types, instr_amounts)
     ]
+    size_list = generate_size_modifiers(
+        size_amount=size_amount, size_modifier_list=size_modifier_list
+    )
+    color_list = generate_color_list(
+        colorset_file_path=colorset_file_path, color_amount=color_amount
+    )
+    shape_list = generate_shape_list(
+        directory=xml_objects_dir_path, shape_amount=shape_amount
+    )
 
     # Generate list of dicts of all combinations
     prompt_list = generate_prompt_dicts(
@@ -243,8 +243,9 @@ def generate_prompts(
         instruction_list=instruction_list,
     )
 
-    # Write list of dicts to prompts.json
-    export_to_json(output_filepath=prompts_file_path, prompt_dicts=prompt_list)
+    # Write
+    with open(output_file_path, "w") as json_file:
+        json.dump(prompt_list, json_file)
 
 
 def main():
@@ -389,8 +390,6 @@ def main():
             for instr_type, instr_amount in zip(instr_types, instr_amounts)
         ],
     )
-
-    export_to_json(output_filepath=output_filepath, prompt_dicts=combinations)
 
 
 if __name__ == "__main__":

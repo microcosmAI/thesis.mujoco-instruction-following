@@ -71,12 +71,23 @@ def get_custom_level_parameters():
 
 
 def generate_level(
-    level_number, colorset, color_amount, shape_amount, size_amount, instr_amounts, curriculum_dir_path, instr_types):
+    level_number,
+    colorset,
+    color_amount,
+    shape_amount,
+    size_amount,
+    instr_amounts,
+    curriculum_dir_path,
+    instr_types,
+    instr_file_path,
+    xml_objects_file_path,
+):
     # TODO generate prompts, xmls, and ymls for a single level
     print(f"Generating level {level_number}...")
     print("color_amount:", color_amount)
     print("shape_amount:", shape_amount)
     print("size_amount:", size_amount)
+    print("instr_types:", instr_types)
     print("instr_amounts:", instr_amounts)
 
     level_folder = f"level_{level_number}"
@@ -84,17 +95,18 @@ def generate_level(
 
     if os.path.exists(level_dir_path):
         shutil.rmtree(level_dir_path)
-    os.mkdir(level_dir_path) # TODO incorporate this logic into all relevant scripts
+    os.mkdir(level_dir_path)  # TODO incorporate this logic into all relevant scripts
 
     # prompts file path is curriculum_dir_path/level_dir_path/prompts/prompts.json
     prompts_file_path = os.path.join(level_dir_path, "prompts", "prompts.json")
     # os.makedirs(os.path.dirname(prompts_file_path), exist_ok=True)
 
-    # generate colorset. colorset path is 
+    # generate colorset. colorset path is
     # generate prompts. prompt path is curriculum_dir_path/level_dir_path/prompts/prompts.json
-    prompt_writer.generate_prompts(
+    prompt_writer.write_prompts(
         colorset=colorset,
         prompts_file_path=prompts_file_path,
+        xml_objects_file_path=xml_objects_file_path,
         color_amount=color_amount,
         shape_amount=shape_amount,
         size_amount=size_amount,
@@ -102,18 +114,20 @@ def generate_level(
     )
 
     # xml path for the level is curriculum_dir_path/level_dir_path/xml
+    # yml path for the level is curriculum_dir_path/level_folder/yml
+    xml_output_dir_path = os.path.join(level_dir_path, "xml")
+    yml_output_dir_path = os.path.join(level_dir_path, "yml")
+
+    # generate xmls
+    xml_writer.write_environments(
+        prompts_file_path=prompts_file_path,
+        xml_output_dir_path=xml_output_dir_path,
+        xml_objects_file_path=xml_objects_file_path,
+        yml_output_dir_path=yml_output_dir_path,
+    )
 
 
-    # yml path for the level is curriculum_dir_path/level_folder/yml 
-    
-
-    
-
-
-    # generate prompts. prompt path is  
-
-
-def generate_curriculum(curriculum_dir_path, level_parameters):
+def generate_curriculum(curriculum_dir_path, level_amount, level_parameters):
     # iterate over level_parameters, which is a dict of lists of ints. The keys are the parameters for the generate_level function.
     # within this function, call generate_level with the parameters from the dict
 
@@ -147,56 +161,67 @@ def move_test_levels(test_levels, output_path):
 
 def main():
     xkcd_dataset_file_path = os.path.join(os.getcwd(), "data", "color_data", "rgb.txt")
-    colorset_file_path = os.path.join(os.getcwd(), "data", "color_data", "colors.json")
+    colorset_dir_path = os.path.join(os.getcwd(), "data", "color_data")
     prompts_file_path = os.path.join(os.getcwd(), "data", "prompt_data", "prompts.json")
     curriculum_dir_path = os.path.join(
         os.getcwd(), "data", "curriculum"
     )  # TODO unify naming convention (dir vs file)
     xml_object_dir_path = os.path.join(os.getcwd(), "data", "xml_objects")
-    # TODO generate yml folders for each level in the respective level folders
+    instr_file_path = os.path.join(os.getcwd(), "data", "prompt_data", "instructions.txt")
+    instr_types = ["approach", "avoid"]
 
-    print(xkcd_dataset_file_path)
-    # TODO move all files to their respective directories
 
     level_amount = 5
     params = get_default_level_parameters(level_amount)
 
-    colorset = colorset_writer.generate_colorset(
-        max_words=1, # word amount per color (e.g. "green" vs "dark green")
+    colorset_writer.generate_colorset(
+        max_words=1,  # word amount per color (e.g. "green" vs "dark green")
         output_format="json",
         color_format="rgba",
         dataset_path=xkcd_dataset_file_path,
-        output_path=colorset_file_path,
+        output_dir_path=colorset_dir_path,
     )
+    colorset_file_path = os.path.join(colorset_dir_path, "colors.json")
 
     # generate one set of prompts and their corresponding xmls for each level
-    # the amount of levels 
+    # the amount of levels
     for level_number in range(level_amount):
         # generate a new directory for each level
         level_dir_path = os.path.join(curriculum_dir_path, f"level_{level_number}")
+        if os.path.exists(level_dir_path):
+            shutil.rmtree(level_dir_path)
         os.mkdir(level_dir_path)
 
+        prompts_file_path = os.path.join(
+            level_dir_path, f"prompts_lvl{level_number}.json"
+        )
+        
+        instr_amounts = [instr_amount[level_number] for instr_amount in params["instr_amounts"]]
+
+
         # generate prompts
-        prompt_writer.generate_prompts(
-            colorset=colorset,
-            prompts_file_path=prompts_file_path,
-            level_number=level_number,
+        prompt_writer.write_prompts(
+            colorset_file_path=colorset_file_path,
+            output_file_path=prompts_file_path,
+            xml_objects_dir_path=xml_object_dir_path,
+            instr_file_path=instr_file_path,
             color_amount=params["color_amounts"][level_number],
             shape_amount=params["shape_amounts"][level_number],
             size_amount=params["size_amounts"][level_number],
-            instr_amounts=params["instr_amounts"],
+            instr_amounts=instr_amounts,
+            size_modifier_list = ["large", "small", "huge", "tiny"],
+            instr_types=instr_types, # TODO move to params
         )
 
         # generate xmls
-        xml_writer.generate_xmls(
+        xml_writer.write_environments(
             prompts_file_path=prompts_file_path,
+            yml_output_path=level_dir_path,
             xml_output_path=level_dir_path,
             xml_object_path=os.path.join(os.getcwd(), "data", "objects"),
         )
 
-
-
-    generate_curriculum(curriculum_dir_path, params)
+    #generate_curriculum(curriculum_dir_path, params)
 
     """
     # Ask user whether they want default or custom curriculum
