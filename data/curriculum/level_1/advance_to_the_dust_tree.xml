@@ -33,35 +33,35 @@
         <geom name="border_3/border_geom" class="border_3/" type="box" size="1 50 2" rgba="0.035000000000000003 0.016 0.28999999999999998 1" />
       </body>
     </body>
-    <body euler="0 0 36.567931734329164" name="placeholder/">
+    <body euler="0 0 59.661403198565608" name="placeholder/">
       <joint name="placeholder/boxagent_freeJoint/" class="/" type="free" />
       <body name="placeholder/placeholder" pos="-25 0 3" euler="0 0 0">
         <geom name="placeholder/boxagent_geom" class="placeholder/" type="box" size="0.5 0.5 0.5" rgba="0.94899999999999995 0.74509999999999998 0.1333 1" euler="0 0 0" />
       </body>
     </body>
-    <body euler="0 0 -163.55711854053658" name="agent/">
+    <body euler="0 0 161.38055845902841" name="agent/">
       <joint name="agent/boxagent_freeJoint/" class="/" type="free" />
-      <body name="agent/agent" pos="-29.672599999999999 -15.8491 0.5" euler="0 0 0">
+      <body name="agent/agent" pos="-25.594349999999999 -1.2775000000000034 0.5" euler="0 0 0">
         <geom name="agent/boxagent_geom" class="agent/" type="box" size="0.5 0.5 0.5" rgba="0.94899999999999995 0.74509999999999998 0.1333 1" euler="0 0 0" />
       </body>
     </body>
     <body name="tree0/">
-      <body name="tree0/tree0" pos="17.7498 0.20050000000000523 0.10000000000000001" euler="0 0 -70.063396116924352">
+      <body name="tree0/tree0" pos="21.582699999999999 16.728099999999998 0.10000000000000001" euler="0 0 178.06450009806048">
         <geom name="tree0/tree_geom" class="tree0/" type="box" size="0.10000000000000001 0.10000000000000001 2" rgba="1 0 0 1" />
       </body>
     </body>
     <body name="tree1/">
-      <body name="tree1/tree1" pos="35.094049999999996 46.599099999999993 0.10000000000000001" euler="0 0 127.70998985323399">
+      <body name="tree1/tree1" pos="31.446849999999998 -2.3540999999999954 0.10000000000000001" euler="0 0 -152.70727255993367">
         <geom name="tree1/tree_geom" class="tree1/" type="box" size="0.10000000000000001 0.10000000000000001 2" rgba="1 0 0 1" />
       </body>
     </body>
     <body name="tree2/">
-      <body name="tree2/tree2" pos="22.0107 3.1681000000000026 0.10000000000000001" euler="0 0 -100.69063567757199">
+      <body name="tree2/tree2" pos="23.147550000000003 -31.534300000000002 0.10000000000000001" euler="0 0 -15.168707599514903">
         <geom name="tree2/tree_geom" class="tree2/" type="box" size="0.10000000000000001 0.10000000000000001 2" rgba="1 0 0 1" />
       </body>
     </body>
     <body name="tree3/">
-      <body name="tree3/tree3" pos="31.199149999999999 -44.5625 0.10000000000000001" euler="0 0 -102.38862114545756">
+      <body name="tree3/tree3" pos="36.728450000000002 28.981200000000001 0.10000000000000001" euler="0 0 146.64139784991801">
         <geom name="tree3/tree_geom" class="tree3/" type="box" size="0.10000000000000001 0.10000000000000001 2" rgba="1 0 0 1" />
       </body>
     </body>

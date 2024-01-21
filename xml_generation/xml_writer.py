@@ -232,7 +232,7 @@ def modify_xml(xml_file_path, entry, colorset_file_path, color_amount):
     target_positions = {}  # format: {position: color} (position is a tuple)
     distractor_positions = {}
     placeholder_positions = []
-
+    
     # modify the json file, store positions as object ID for modifying the xml file
     for key in json_data:
         # Objects with tags can be either:
@@ -243,10 +243,10 @@ def modify_xml(xml_file_path, entry, colorset_file_path, color_amount):
             keys_to_delete = []
             for k, v in json_data[key]["objects"].items():
                 if "Target" in v["tags"]:
-                    v["color"] = target_color
-                    target_positions[tuple(v["position"])] = v["color"]
+                    v["color"] = target_color["rgb"]
+                    target_positions[tuple(v["position"])] = v["color"]       
                 if "Distractor" in v["tags"]:
-                    v["color"] = np.random.choice(colorset)
+                    v["color"] = np.random.choice(colorset)["code"]
                     distractor_positions[tuple(v["position"])] = v["color"]
                 if "Placeholder" in v["tags"]:
                     placeholder_positions.append(v["position"])
@@ -260,12 +260,10 @@ def modify_xml(xml_file_path, entry, colorset_file_path, color_amount):
                 keys_to_delete = []
                 for k, v in json_data[key][area_name]["objects"].items():
                     if "Target" in v["tags"]:
-                        v["color"] = target_color
-                        print(v)
-                        print("target color:", target_color)
+                        v["color"] = target_color["rgb"]
                         target_positions[tuple(v["position"])] = v["color"]
                     if "Distractor" in v["tags"]:
-                        v["color"] = np.random.choice(colorset)
+                        v["color"] = np.random.choice(colorset)["code"]
                         distractor_positions[tuple(v["position"])] = v["color"]
                     if "Placeholder" in v["tags"]:
                         keys_to_delete.append(k)
