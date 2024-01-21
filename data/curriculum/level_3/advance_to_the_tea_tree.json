@@ -1,269 +1,257 @@
 {
-    "environment": {
-        "configuration": {
-            "Style": [
-                {
-                    "pretty_mode": false
-                }
-            ],
-            "size_range": [
-                1000,
-                1000
-            ]
-        },
-        "objects": {
-            "border/border": {
-                "name": "border/border",
-                "type": null,
-                "class": "Border",
-                "position": [
-                    0.0,
-                    501.0,
-                    2.0
-                ],
-                "color": [
-                    0.035,
-                    0.016,
-                    0.29,
-                    1.0
-                ],
-                "size": [
-                    500.0,
-                    1.0,
-                    2.0
-                ],
-                "tags": [
-                    "Border"
-                ]
-            },
-            "border_1/border": {
-                "name": "border_1/border",
-                "type": null,
-                "class": "Border",
-                "position": [
-                    0.0,
-                    -501.0,
-                    2.0
-                ],
-                "color": [
-                    0.035,
-                    0.016,
-                    0.29,
-                    1.0
-                ],
-                "size": [
-                    500.0,
-                    1.0,
-                    2.0
-                ],
-                "tags": [
-                    "Border"
-                ]
-            },
-            "border_2/border": {
-                "name": "border_2/border",
-                "type": null,
-                "class": "Border",
-                "position": [
-                    501.0,
-                    0.0,
-                    2.0
-                ],
-                "color": [
-                    0.035,
-                    0.016,
-                    0.29,
-                    1.0
-                ],
-                "size": [
-                    1.0,
-                    500.0,
-                    2.0
-                ],
-                "tags": [
-                    "Border"
-                ]
-            },
-            "border_3/border": {
-                "name": "border_3/border",
-                "type": null,
-                "class": "Border",
-                "position": [
-                    -501.0,
-                    0.0,
-                    2.0
-                ],
-                "color": [
-                    0.035,
-                    0.016,
-                    0.29,
-                    1.0
-                ],
-                "size": [
-                    1.0,
-                    500.0,
-                    2.0
-                ],
-                "tags": [
-                    "Border"
-                ]
-            },
-            "agentplaceholder/agentplaceholder": {
-                "name": "agentplaceholder/agentplaceholder",
-                "type": null,
-                "class": "BoxAgent",
-                "position": [
-                    -250.0,
-                    0.0,
-                    3.0
-                ],
-                "color": [
-                    0.949,
-                    0.7451,
-                    0.1333,
-                    1.0
-                ],
-                "size": [
-                    0.5,
-                    0.5,
-                    0.5
-                ],
-                "tags": [
-                    "Agent"
-                ]
-            }
+  "environment": {
+    "configuration": {
+      "Style": [
+        {
+          "pretty_mode": false
         }
+      ],
+      "size_range": [
+        100,
+        100
+      ]
     },
-    "areas": {
-        "Area1": {
-            "configuration": {},
-            "objects": {
-                "placeholder_box/placeholder_box": {
-                    "name": "placeholder_box/placeholder_box",
-                    "type": null,
-                    "class": "Box",
-                    "position": [
-                        -343.6497,
-                        -172.33190000000002,
-                        0.5
-                    ],
-                    "color": [
-                        0.949,
-                        0.7451,
-                        0.1333,
-                        1.0
-                    ],
-                    "size": [
-                        0.5,
-                        0.5,
-                        0.5
-                    ],
-                    "tags": [
-                        "Placeholder"
-                    ]
-                }
-            }
-        },
-        "Area2": {
-            "configuration": {},
-            "objects": {
-                "tree0/tree0": {
-                    "name": "tree0/tree0",
-                    "type": null,
-                    "class": "Tree",
-                    "position": [
-                        226.00185,
-                        136.5421,
-                        0.1
-                    ],
-                    "color": [
-                        1.0,
-                        0.0,
-                        0.0,
-                        1.0
-                    ],
-                    "size": [
-                        0.1,
-                        0.1,
-                        2.0
-                    ],
-                    "tags": [
-                        "Target"
-                    ]
-                },
-                "tree1/tree1": {
-                    "name": "tree1/tree1",
-                    "type": null,
-                    "class": "Tree",
-                    "position": [
-                        270.9406,
-                        473.9870000000001,
-                        0.1
-                    ],
-                    "color": [
-                        1.0,
-                        0.0,
-                        0.0,
-                        1.0
-                    ],
-                    "size": [
-                        0.1,
-                        0.1,
-                        2.0
-                    ],
-                    "tags": [
-                        "Distractor"
-                    ]
-                },
-                "tree2/tree2": {
-                    "name": "tree2/tree2",
-                    "type": null,
-                    "class": "Tree",
-                    "position": [
-                        281.46569999999997,
-                        -123.56399999999996,
-                        0.1
-                    ],
-                    "color": [
-                        1.0,
-                        0.0,
-                        0.0,
-                        1.0
-                    ],
-                    "size": [
-                        0.1,
-                        0.1,
-                        2.0
-                    ],
-                    "tags": [
-                        "Distractor"
-                    ]
-                },
-                "tree3/tree3": {
-                    "name": "tree3/tree3",
-                    "type": null,
-                    "class": "Tree",
-                    "position": [
-                        356.1666,
-                        -306.2556,
-                        0.1
-                    ],
-                    "color": [
-                        1.0,
-                        0.0,
-                        0.0,
-                        1.0
-                    ],
-                    "size": [
-                        0.1,
-                        0.1,
-                        2.0
-                    ],
-                    "tags": [
-                        "Distractor"
-                    ]
-                }
-            }
-        }
+    "objects": {
+      "border/border": {
+        "name": "border/border",
+        "type": null,
+        "class": "Border",
+        "position": [
+          0.0,
+          51.0,
+          2.0
+        ],
+        "color": [
+          0.035,
+          0.016,
+          0.29,
+          1.0
+        ],
+        "size": [
+          50.0,
+          1.0,
+          2.0
+        ],
+        "tags": [
+          "Border"
+        ]
+      },
+      "border_1/border": {
+        "name": "border_1/border",
+        "type": null,
+        "class": "Border",
+        "position": [
+          0.0,
+          -51.0,
+          2.0
+        ],
+        "color": [
+          0.035,
+          0.016,
+          0.29,
+          1.0
+        ],
+        "size": [
+          50.0,
+          1.0,
+          2.0
+        ],
+        "tags": [
+          "Border"
+        ]
+      },
+      "border_2/border": {
+        "name": "border_2/border",
+        "type": null,
+        "class": "Border",
+        "position": [
+          51.0,
+          0.0,
+          2.0
+        ],
+        "color": [
+          0.035,
+          0.016,
+          0.29,
+          1.0
+        ],
+        "size": [
+          1.0,
+          50.0,
+          2.0
+        ],
+        "tags": [
+          "Border"
+        ]
+      },
+      "border_3/border": {
+        "name": "border_3/border",
+        "type": null,
+        "class": "Border",
+        "position": [
+          -51.0,
+          0.0,
+          2.0
+        ],
+        "color": [
+          0.035,
+          0.016,
+          0.29,
+          1.0
+        ],
+        "size": [
+          1.0,
+          50.0,
+          2.0
+        ],
+        "tags": [
+          "Border"
+        ]
+      }
     }
+  },
+  "areas": {
+    "Area1": {
+      "configuration": {},
+      "objects": {
+        "agent/agent": {
+          "name": "agent/agent",
+          "type": null,
+          "class": "BoxAgent",
+          "position": [
+            -23.2722,
+            36.947900000000004,
+            0.5
+          ],
+          "color": [
+            0.949,
+            0.7451,
+            0.1333,
+            1.0
+          ],
+          "size": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "tags": [
+            "Agent"
+          ]
+        }
+      }
+    },
+    "Area2": {
+      "configuration": {},
+      "objects": {
+        "tree0/tree0": {
+          "name": "tree0/tree0",
+          "type": null,
+          "class": "Tree",
+          "position": [
+            30.54225,
+            42.85220000000001,
+            0.1
+          ],
+          "color": {
+            "name": "tea",
+            "rgb": [
+              0.396078431372549,
+              0.6705882352941176,
+              0.48627450980392156,
+              1.0
+            ]
+          },
+          "size": [
+            0.1,
+            0.1,
+            2.0
+          ],
+          "tags": [
+            "Target"
+          ]
+        },
+        "tree1/tree1": {
+          "name": "tree1/tree1",
+          "type": null,
+          "class": "Tree",
+          "position": [
+            17.283450000000002,
+            -21.8239,
+            0.1
+          ],
+          "color": {
+            "name": "dust",
+            "code": [
+              0.6980392156862745,
+              0.6,
+              0.43137254901960786,
+              1.0
+            ]
+          },
+          "size": [
+            0.1,
+            0.1,
+            2.0
+          ],
+          "tags": [
+            "Distractor"
+          ]
+        },
+        "tree2/tree2": {
+          "name": "tree2/tree2",
+          "type": null,
+          "class": "Tree",
+          "position": [
+            25.0627,
+            21.20060000000001,
+            0.1
+          ],
+          "color": {
+            "name": "tea",
+            "code": [
+              0.396078431372549,
+              0.6705882352941176,
+              0.48627450980392156,
+              1.0
+            ]
+          },
+          "size": [
+            0.1,
+            0.1,
+            2.0
+          ],
+          "tags": [
+            "Distractor"
+          ]
+        },
+        "tree3/tree3": {
+          "name": "tree3/tree3",
+          "type": null,
+          "class": "Tree",
+          "position": [
+            32.755250000000004,
+            -30.2142,
+            0.1
+          ],
+          "color": {
+            "name": "tea",
+            "code": [
+              0.396078431372549,
+              0.6705882352941176,
+              0.48627450980392156,
+              1.0
+            ]
+          },
+          "size": [
+            0.1,
+            0.1,
+            2.0
+          ],
+          "tags": [
+            "Distractor"
+          ]
+        }
+      }
+    }
+  }
 }

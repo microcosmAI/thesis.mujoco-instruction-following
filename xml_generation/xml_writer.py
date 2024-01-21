@@ -35,32 +35,32 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
     # Define the fixed structure for the yml file
     yml_data = {
         "Environment": {
-            "size_range": [1000, 1000],
+            "size_range": [100, 100],
             "Style": [{"pretty_mode": False}],
             "Borders": [
                 {"xml_name": "Border.xml"},
                 {"place": True},
                 {"tags": ["Border"]},
             ],
+            # Placeholder object because PITA needs at least one object in the environment to work
             "Objects": {
-                "AgentPlaceholder": [
+                "Placeholder": [
                     {"xml_name": "BoxAgent.xml"},
                     {"amount": 1},
                     {"z_rotation_range": [-180, 180]},
                     {"coordinates": [[25, 50, 3]]},  # TODO test placement of agent
-                    {"tags": ["Agent"]},
+                    {"tags": ["Placeholder"]},
                 ],
             },
         },
         "Areas": {
             "Area1": {
                 "Objects": {
-                    # TODO place agent here if random placement is needed
-                    "placeholder_box": [
-                        {"xml_name": "Box.xml"},
+                    "Agent": [
+                        {"xml_name": "BoxAgent.xml"},
                         {"amount": [1, 1]},
                         {"z_rotation_range": [-180, 180]},
-                        {"tags": ["Placeholder"]},
+                        {"tags": ["Agent"]},
                     ],
                 },
             },
@@ -144,40 +144,14 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
         yml_file.write(yml_str)
 
 
-def write_environments(
-    prompts_file_path, yml_output_dir_path, xml_output_dir_path, xml_object_dir_path
+def write_xml_entry(
+    entry,
+    yml_output_dir_path,
+    xml_object_dir_path,
+    xml_output_dir_path,
+    colorset_file_path,
+    color_amount,
 ):
-    """Generates xml files in xml_output_dir_path based on the entries in the json file
-
-    Args:
-        yml_output_dir_path (str): path to yml directory
-        xml_output_dir_path (str): path to output directory
-
-    Returns:
-        none
-    """
-    with open(prompts_file_path, "r") as f:
-        data = json.load(f)
-
-    object_pool = get_object_pool(data)
-    
-    if len(data) == 0:
-        raise ValueError("No prompts found in prompts file")
-
-    for entry in data:
-        write_yml_entry(
-            entry=entry,
-            yml_output_dir_path=yml_output_dir_path,
-            object_pool=object_pool,
-        )
-        write_xml_entry(
-            entry=entry,
-            yml_output_dir_path=yml_output_dir_path,
-            xml_output_dir_path=xml_output_dir_path,
-            xml_object_dir_path=xml_object_dir_path,
-        )
-
-def write_xml_entry(entry, yml_output_dir_path, xml_object_dir_path, xml_output_dir_path):
     """Generates a single xml file based on a single yml file, using details from the json file containing the prompts"""
 
     # get yml/xml filenames from json entry
@@ -185,7 +159,7 @@ def write_xml_entry(entry, yml_output_dir_path, xml_object_dir_path, xml_output_
         yml_output_dir_path, entry["prompt"].replace(" ", "_").lower() + ".yml"
     )
     xml_file_path = os.path.join(
-        xml_output_dir_path, entry["prompt"].replace(" ", "_").lower()
+        xml_output_dir_path, entry["prompt"].replace(" ", "_").lower() + ".xml"
     )
 
     xml_object_dir_path = os.path.join(xml_object_dir_path)
@@ -195,11 +169,14 @@ def write_xml_entry(entry, yml_output_dir_path, xml_object_dir_path, xml_output_
         random_seed=None,
         config_path=yml_file_path,
         xml_dir=xml_object_dir_path,
-        export_path=xml_file_path,
+        export_path=xml_file_path.removesuffix(
+            ".xml"
+        ),  # TODO test if it works with suffix
         plot=False,
     )
 
     # TODO change the colors of the objects in the xml file according to my experiment
+    modify_xml(xml_file_path, entry, colorset_file_path, color_amount)
 
 
 def get_object_pool(data):
@@ -215,6 +192,159 @@ def get_object_pool(data):
             raise ValueError("No shape specified for target object")
 
     return object_pool
+
+
+def modify_xml(xml_file_path, entry, colorset_file_path, color_amount):
+    """
+    Modifies the xml file at xml_file_path based on the entry in the json file.
+
+    The modifications are as follows:
+        - the target object gets the target color
+        - the distractor objects get a random color from the colorset
+        - the placeholder objects get deleted
+
+    This function replaces functionality that PITA doesn't have yet.
+
+    Args:
+        xml_file_path (str): path to xml file
+        entry (dict): entry from json file
+        colorset_file_path (str): path to colorset file
+        color_amount (int): amount of colors to use from colorset file
+    """
+
+    # set target color rgba
+    target_color = entry["color"]
+    json_file_path = xml_file_path.replace(".xml", ".json")
+
+    # get colorset, without target color and with right amount of colors
+    with open(colorset_file_path, "r") as f:
+        colorset = json.load(f)
+
+    with open(json_file_path, "r") as f:
+        json_data = json.load(f)
+
+    with open(xml_file_path, "r") as f:
+        xml_data = f.readlines()
+
+    colorset = colorset[:color_amount]
+    colorset = [color for color in colorset if color != target_color]
+
+    target_positions = {}  # format: {position: color} (position is a tuple)
+    distractor_positions = {}
+    placeholder_positions = []
+
+    # modify the json file, store positions as object ID for modifying the xml file
+    for key in json_data:
+        # Objects with tags can be either:
+        #  - in "environment" key, where they are one level deep
+        #  - in "areas" key, where they are two levels deep
+
+        if key == "environment":
+            keys_to_delete = []
+            for k, v in json_data[key]["objects"].items():
+                if "Target" in v["tags"]:
+                    v["color"] = target_color
+                    target_positions[tuple(v["position"])] = v["color"]
+                if "Distractor" in v["tags"]:
+                    v["color"] = np.random.choice(colorset)
+                    distractor_positions[tuple(v["position"])] = v["color"]
+                if "Placeholder" in v["tags"]:
+                    placeholder_positions.append(v["position"])
+                    keys_to_delete.append(k)
+
+            for k in keys_to_delete:
+                del json_data[key]["objects"][k]
+
+        elif key == "areas":
+            for area_name in json_data[key]:
+                keys_to_delete = []
+                for k, v in json_data[key][area_name]["objects"].items():
+                    if "Target" in v["tags"]:
+                        v["color"] = target_color
+                        print(v)
+                        print("target color:", target_color)
+                        target_positions[tuple(v["position"])] = v["color"]
+                    if "Distractor" in v["tags"]:
+                        v["color"] = np.random.choice(colorset)
+                        distractor_positions[tuple(v["position"])] = v["color"]
+                    if "Placeholder" in v["tags"]:
+                        keys_to_delete.append(k)
+                        placeholder_positions.append(v["position"])
+
+                for k in keys_to_delete:
+                    del json_data[key][area_name]["objects"][k]
+
+
+
+    # modify the xml file based on the previously stored positions
+    for i, line in enumerate(xml_data):
+        for position in target_positions.keys():
+            if str(position) in line:
+                xml_data[i] = line.replace(
+                    f'rgba="{target_positions[position]}"',
+                    f'rgba="{target_color}"',
+                )
+
+        for position in distractor_positions.keys():
+            if str(position) in line:
+                xml_data[i] = line.replace(
+                    f'rgba="{distractor_positions[position]}"',
+                    f'rgba="{distractor_positions[position]}"',
+                )
+
+        for position in placeholder_positions:
+            if str(position) in line:
+                # delete that line
+                del xml_data[i]
+                break
+
+
+    with open(json_file_path, "w") as f:
+        json.dump(json_data, f, indent=2)
+
+    with open(xml_file_path, "w") as f:
+        f.writelines(xml_data)
+
+
+def write_environments(
+    prompts_file_path,
+    yml_output_dir_path,
+    xml_output_dir_path,
+    xml_object_dir_path,
+    colorset_file_path,
+    color_amount,
+):
+    """Generates xml files in xml_output_dir_path based on the entries in the json file
+
+    Args:
+        yml_output_dir_path (str): path to yml directory
+        xml_output_dir_path (str): path to output directory
+
+    Returns:
+        none
+    """
+    with open(prompts_file_path, "r") as f:
+        data = json.load(f)
+
+    object_pool = get_object_pool(data)
+
+    if len(data) == 0:
+        raise ValueError("No prompts found in prompts file")
+
+    for entry in data:
+        write_yml_entry(
+            entry=entry,
+            yml_output_dir_path=yml_output_dir_path,
+            object_pool=object_pool,
+        )
+        write_xml_entry(
+            entry=entry,
+            yml_output_dir_path=yml_output_dir_path,
+            xml_output_dir_path=xml_output_dir_path,
+            xml_object_dir_path=xml_object_dir_path,
+            colorset_file_path=colorset_file_path,
+            color_amount=color_amount,
+        )
 
 
 def main():

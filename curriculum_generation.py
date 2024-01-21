@@ -72,7 +72,7 @@ def get_custom_level_parameters():
 
 def generate_level(
     level_number,
-    colorset,
+    colorset, # TODO rename colorset_file_path
     color_amount,
     shape_amount,
     size_amount,
@@ -82,7 +82,6 @@ def generate_level(
     instr_file_path,
     xml_objects_file_path,
 ):
-    # TODO generate prompts, xmls, and ymls for a single level
     print(f"Generating level {level_number}...")
     print("color_amount:", color_amount)
     print("shape_amount:", shape_amount)
@@ -101,7 +100,6 @@ def generate_level(
     prompts_file_path = os.path.join(level_dir_path, "prompts", "prompts.json")
     # os.makedirs(os.path.dirname(prompts_file_path), exist_ok=True)
 
-    # generate colorset. colorset path is
     # generate prompts. prompt path is curriculum_dir_path/level_dir_path/prompts/prompts.json
     prompt_writer.write_prompts(
         colorset=colorset,
@@ -124,6 +122,8 @@ def generate_level(
         xml_output_dir_path=xml_output_dir_path,
         xml_objects_file_path=xml_objects_file_path,
         yml_output_dir_path=yml_output_dir_path,
+        colorset_file_path=colorset_file_path,
+        color_amount=color_amount,
     )
 
 
@@ -198,7 +198,6 @@ def main():
         
         instr_amounts = [instr_amount[level_number] for instr_amount in params["instr_amounts"]]
 
-
         # generate prompts
         prompt_writer.write_prompts(
             colorset_file_path=colorset_file_path,
@@ -214,12 +213,13 @@ def main():
         )
 
         # generate xmls
-        # TODO find out why this doesn't work
         xml_writer.write_environments(
             prompts_file_path=prompts_file_path,
             yml_output_dir_path=level_dir_path,
             xml_output_dir_path=level_dir_path,
-            xml_object_dir_path=xml_object_dir_path
+            xml_object_dir_path=xml_object_dir_path,
+            colorset_file_path=colorset_file_path,
+            color_amount=params["color_amounts"][level_number],
         )
 
     #generate_curriculum(curriculum_dir_path, params)
