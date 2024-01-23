@@ -171,7 +171,7 @@ def main():
     instr_types = ["approach", "avoid"]
 
 
-    level_amount = 9
+    level_amount = 3
     params = get_default_level_parameters(level_amount)
 
     colorset_writer.generate_colorset(

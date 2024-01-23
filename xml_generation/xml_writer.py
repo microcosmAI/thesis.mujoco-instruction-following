@@ -20,6 +20,7 @@ import numpy as np
 from pita_algorithm.pita import PITA
 import re
 
+
 def write_yml_entry(entry, yml_output_dir_path, object_pool):
     """Write a single yml file based on one entry in the json file
 
@@ -34,7 +35,6 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
 
     # Define the fixed structure for the yml file
     yml_data = {
-
         # Environment size is fixed at 100x100
         "Environment": {
             "size_range": [100, 100],
@@ -49,12 +49,11 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
                 "Placeholder": [
                     {"xml_name": "Box.xml"},
                     {"amount": 1},
-                    {"coordinates": [[1, 1, -30]]}, # under the floor
+                    {"coordinates": [[1, 1, -30]]},  # under the floor
                     {"tags": ["Placeholder"]},
                 ],
             },
         },
-
         # Placing the objects in one half, the agent in the other half by splitting into two areas
         "Areas": {
             "Area1": {
@@ -253,7 +252,7 @@ def modify_xml(xml_file_path, entry, colorset_file_path, color_amount):
             for k, v in json_data[key]["objects"].items():
                 if "Target" in v["tags"]:
                     v["color"] = target_color["rgb"]
-                    target_positions[tuple(v["position"])] = v["color"]       
+                    target_positions[tuple(v["position"])] = v["color"]
                 if "Distractor" in v["tags"]:
                     v["color"] = np.random.choice(colorset)["code"]
                     distractor_positions[tuple(v["position"])] = v["color"]
@@ -281,10 +280,15 @@ def modify_xml(xml_file_path, entry, colorset_file_path, color_amount):
                 for k in keys_to_delete:
                     del json_data[key][area_name]["objects"][k]
 
-
     # round the positions to two decimals
-    target_positions = {tuple([round(p, 2) for p in pos]): color for pos, color in target_positions.items()}
-    distractor_positions = {tuple([round(p, 2) for p in pos]): color for pos, color in distractor_positions.items()}
+    target_positions = {
+        tuple([round(p, 2) for p in pos]): color
+        for pos, color in target_positions.items()
+    }
+    distractor_positions = {
+        tuple([round(p, 2) for p in pos]): color
+        for pos, color in distractor_positions.items()
+    }
     # placeholder_positions = [tuple([round(p, 2) for p in pos]) for pos in placeholder_positions]
 
     # add one empty line to the end of the xml file for the sake of the regex
@@ -294,23 +298,27 @@ def modify_xml(xml_file_path, entry, colorset_file_path, color_amount):
     # The xml file is a list of strings, each string representing a line in the xml file.
 
     for i, line in enumerate(xml_data.copy()):
-
-        if str("pos=") in line:    
+        if str("pos=") in line:
             xml_pos = line.split("pos=")[1].split('"')[1].split(" ")
             xml_pos = tuple([round(float(p), 2) for p in xml_pos])
-            
+
             if xml_pos in target_positions.keys():
                 # Match 'rgba="<any_value>"'
                 pattern = r'rgba="[^"]*"'
                 replacement = f'rgba="{target_positions[xml_pos]}"'
-                xml_data[i+1] = re.sub(pattern, replacement, line)
+                replacement = (
+                    replacement.replace("[", "").replace("]", "").replace(",", "")
+                )
+                xml_data[i + 1] = re.sub(pattern, replacement, xml_data[i + 1])
 
             elif xml_pos in distractor_positions.keys():
                 # Match 'rgba="<any_value>"'
                 pattern = r'rgba="[^"]*"'
                 replacement = f'rgba="{distractor_positions[xml_pos]}"'
-                xml_data[i+1] = re.sub(pattern, replacement, line)
-
+                replacement = (
+                    replacement.replace("[", "").replace("]", "").replace(",", "")
+                )
+                xml_data[i + 1] = re.sub(pattern, replacement, xml_data[i + 1])
 
     with open(json_file_path, "w") as f:
         json.dump(json_data, f, indent=2)
