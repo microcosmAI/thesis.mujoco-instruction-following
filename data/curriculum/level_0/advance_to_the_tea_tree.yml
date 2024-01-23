@@ -35,11 +35,10 @@ Environment:
   - tags: [Border]
   Objects:
     Placeholder:
-    - xml_name: BoxAgent.xml
+    - xml_name: Box.xml
     - amount: 1
-    - z_rotation_range: [-180, 180]
     - coordinates:
-      - [25, 50, 3]
+      - [1, 1, -30]
     - tags: [Placeholder]
   Style:
   - pretty_mode: false

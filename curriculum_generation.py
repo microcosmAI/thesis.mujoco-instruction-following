@@ -47,12 +47,12 @@ def get_default_level_parameters(level_amount):
     Returns:
         dict: dict of lists of ints of length level_amount
     """
-    color_amounts = [2, 2, 2, 2, 2, 2, 2, 2, 2][:level_amount]
-    shape_amounts = [1, 1, 1, 1, 1, 1, 1, 1, 1][:level_amount]
-    size_amounts = [1, 1, 1, 1, 1, 1, 1, 1, 1][:level_amount]
-    instr_type_amounts = 2  # Must be the max amount of instr types in any level
+    color_amounts = [2, 2, 3, 3, 4, 5, 6, 6, 6][:level_amount]
+    shape_amounts = [1, 2, 2, 3, 3, 4, 5, 6, 6][:level_amount]
+    size_amounts = [1, 1, 2, 2, 2, 2, 2, 2, 2][:level_amount]
+    instr_type_amounts = 2
     instr_amounts = [
-        [1, 1, 1, 1, 1, 2, 2, 2, 2, 2][:level_amount],
+        [1, 1, 2, 2, 3, 3, 4, 4, 5, 5][:level_amount],
         [0, 0, 0, 0, 0, 1, 1, 1, 1, 1][:level_amount],
     ][:instr_type_amounts]
 
@@ -171,7 +171,7 @@ def main():
     instr_types = ["approach", "avoid"]
 
 
-    level_amount = 5
+    level_amount = 9
     params = get_default_level_parameters(level_amount)
 
     colorset_writer.generate_colorset(

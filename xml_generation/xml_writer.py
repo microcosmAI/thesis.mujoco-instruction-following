@@ -18,7 +18,7 @@ import yaml
 import json
 import numpy as np
 from pita_algorithm.pita import PITA
-
+import re
 
 def write_yml_entry(entry, yml_output_dir_path, object_pool):
     """Write a single yml file based on one entry in the json file
@@ -34,6 +34,8 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
 
     # Define the fixed structure for the yml file
     yml_data = {
+
+        # Environment size is fixed at 100x100
         "Environment": {
             "size_range": [100, 100],
             "Style": [{"pretty_mode": False}],
@@ -42,17 +44,18 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
                 {"place": True},
                 {"tags": ["Border"]},
             ],
-            # Placeholder object because PITA needs at least one object in the environment to work
+            # Placeholder object because PITA needs at least one object in the environment to work (in its current version)
             "Objects": {
                 "Placeholder": [
-                    {"xml_name": "BoxAgent.xml"},
+                    {"xml_name": "Box.xml"},
                     {"amount": 1},
-                    {"z_rotation_range": [-180, 180]},
-                    {"coordinates": [[25, 50, 3]]},  # TODO test placement of agent
+                    {"coordinates": [[1, 1, -30]]}, # under the floor
                     {"tags": ["Placeholder"]},
                 ],
             },
         },
+
+        # Placing the objects in one half, the agent in the other half by splitting into two areas
         "Areas": {
             "Area1": {
                 "Objects": {
@@ -180,8 +183,9 @@ def write_xml_entry(
 
 
 def get_object_pool(data):
-    """Returns a list of every object type (=xml_name) that occurs in data"""
+    """Returns a list of every object type (=xml_name) that occurs in data, minus default objects like borders and agents"""
 
+    # get all objects
     object_pool = []
     for entry in data:
         if "shape" in entry and "xml_name" in entry["shape"]:
@@ -190,6 +194,10 @@ def get_object_pool(data):
                 object_pool.append(entry["shape"]["xml_name"])
         else:
             raise ValueError("No shape specified for target object")
+
+    # remove default objects
+    default_objects = ["BoxAgent.xml", "Border.xml"]
+    object_pool = [obj for obj in object_pool if obj not in default_objects]
 
     return object_pool
 
@@ -204,6 +212,7 @@ def modify_xml(xml_file_path, entry, colorset_file_path, color_amount):
         - the placeholder objects get deleted
 
     This function replaces functionality that PITA doesn't have yet.
+    Should PITA be able to assign colors to objects, this function can be replaced.
 
     Args:
         xml_file_path (str): path to xml file
@@ -232,7 +241,7 @@ def modify_xml(xml_file_path, entry, colorset_file_path, color_amount):
     target_positions = {}  # format: {position: color} (position is a tuple)
     distractor_positions = {}
     placeholder_positions = []
-    
+
     # modify the json file, store positions as object ID for modifying the xml file
     for key in json_data:
         # Objects with tags can be either:
@@ -273,28 +282,34 @@ def modify_xml(xml_file_path, entry, colorset_file_path, color_amount):
                     del json_data[key][area_name]["objects"][k]
 
 
+    # round the positions to two decimals
+    target_positions = {tuple([round(p, 2) for p in pos]): color for pos, color in target_positions.items()}
+    distractor_positions = {tuple([round(p, 2) for p in pos]): color for pos, color in distractor_positions.items()}
+    # placeholder_positions = [tuple([round(p, 2) for p in pos]) for pos in placeholder_positions]
 
-    # modify the xml file based on the previously stored positions
-    for i, line in enumerate(xml_data):
-        for position in target_positions.keys():
-            if str(position) in line:
-                xml_data[i] = line.replace(
-                    f'rgba="{target_positions[position]}"',
-                    f'rgba="{target_color}"',
-                )
+    # add one empty line to the end of the xml file for the sake of the regex
+    xml_data.append("\n")
 
-        for position in distractor_positions.keys():
-            if str(position) in line:
-                xml_data[i] = line.replace(
-                    f'rgba="{distractor_positions[position]}"',
-                    f'rgba="{distractor_positions[position]}"',
-                )
+    # modify the xml file based on the previously stored positions.
+    # The xml file is a list of strings, each string representing a line in the xml file.
 
-        for position in placeholder_positions:
-            if str(position) in line:
-                # delete that line
-                del xml_data[i]
-                break
+    for i, line in enumerate(xml_data.copy()):
+
+        if str("pos=") in line:    
+            xml_pos = line.split("pos=")[1].split('"')[1].split(" ")
+            xml_pos = tuple([round(float(p), 2) for p in xml_pos])
+            
+            if xml_pos in target_positions.keys():
+                # Match 'rgba="<any_value>"'
+                pattern = r'rgba="[^"]*"'
+                replacement = f'rgba="{target_positions[xml_pos]}"'
+                xml_data[i+1] = re.sub(pattern, replacement, line)
+
+            elif xml_pos in distractor_positions.keys():
+                # Match 'rgba="<any_value>"'
+                pattern = r'rgba="[^"]*"'
+                replacement = f'rgba="{distractor_positions[xml_pos]}"'
+                xml_data[i+1] = re.sub(pattern, replacement, line)
 
 
     with open(json_file_path, "w") as f:

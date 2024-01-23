@@ -204,13 +204,16 @@ def write_prompts(
     """Generates a file in the prompts_file_path directory based on the given parameters
 
     Args:
-    # TODO update docstring
-        colorset_file_path (list): list of dicts, structured {"name": name, "code": code}
-        prompts_file_path (str): path to prompts.json file
+        colorset_file_path (str): path to .json file with color information
+        output_file_path (str): path to output file
+        xml_objects_dir_path (str): path to directory with .xml files
+        instr_file_path (str): path to .json file with instructions
+        size_modifier_list (list): list of size modifiers
         color_amount (int): amount of colors
         shape_amount (int): amount of shapes
         size_amount (int): amount of size modifiers
-        instr_amounts (list): list of ints, amount of instructions for each type
+        instr_amounts (list): list of instruction amounts
+        instr_types (list): list of instruction types
 
     Returns:
         none
@@ -248,6 +251,7 @@ def write_prompts(
             json.dump(prompt_list, json_file)
     except Exception as e:
         print(f"An error occurred while writing to the file: {e}")
+
 
 def main():
     # Data to build instructions from
