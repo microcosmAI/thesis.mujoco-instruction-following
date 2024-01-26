@@ -132,16 +132,11 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
 
     os.makedirs(os.path.dirname(yml_output_file_path), exist_ok=True)
 
-    # with open(yml_output_path, 'w') as yml_file:
-    #    yaml.dump(yml_data, yml_file, default_flow_style=None, indent=2)
-
-    # Convert data to yml
     yml_str = yaml.dump(yml_data, default_flow_style=None, indent=2)
 
     # Alter the yml string formatting to the current expected format for PITA (subject to change)
     yml_str = yml_str.replace("{", "").replace("}", "").replace("'", "")
 
-    # Write the modified yml string to file
     with open(yml_output_file_path, "w") as yml_file:
         yml_file.write(yml_str)
 
@@ -295,8 +290,6 @@ def modify_xml(xml_file_path, entry, colorset_file_path, color_amount):
     xml_data.append("\n")
 
     # modify the xml file based on the previously stored positions.
-    # The xml file is a list of strings, each string representing a line in the xml file.
-
     for i, line in enumerate(xml_data.copy()):
         if str("pos=") in line:
             xml_pos = line.split("pos=")[1].split('"')[1].split(" ")
