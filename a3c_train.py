@@ -23,13 +23,13 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.normal import Normal
 from torch.utils.tensorboard import SummaryWriter
-from wrappers.record_episode_statistics import RecordEpisodeStatistics
+
+# from wrappers.record_episode_statistics import RecordEpisodeStatistics
 from progressbar import progressbar
 
 
 def make_env(config_dict):
     def thunk():
-        window = 5
         env = MuJoCoRL(config_dict=config_dict)
         env = GymWrapper(env, config_dict["agents"][0])
         env = gym.wrappers.RecordEpisodeStatistics(env)
@@ -210,3 +210,54 @@ def train(rank, args, shared_model, config_dict):
 
         ensure_shared_grads(model, shared_model)
         optimizer.step()
+
+
+# build a main function for debugging. in it:
+# generate an env.
+# print, in a nice format:
+# the returns of env.reset
+# the returns of env.step
+
+
+def main():
+    # set paths and such for the config dict
+    # path to folder xml_files from current dir:
+    xml_file_path = os.path.join(os.getcwd(), "xml_debug_files", "advance_to_the_tea_tree.xml")
+    json_files = os.path.join(os.getcwd(), "xml_debug_files", "advance_to_the_tea_tree.json")
+    agents = ["agent/"]
+    num_envs = 2
+
+    config_dict = {
+        "xmlPath": xml_file_path,
+        "infoJson": json_files,
+        "agents": agents,
+        "rewardFunctions": [target_reward],  # add collision reward later
+        "doneFunctions": [target_done],
+        "skipFrames": 5,
+        "environmentDynamics": [Image, Reward],
+        "freeJoint": True,
+        "renderMode": False,
+        "maxSteps": 4096 * 16,
+        "agentCameras": True,
+        "tensorboard_writer": None,
+    }
+
+    envs = gym.vector.AsyncVectorEnv(
+        [make_env(config_dict) for _ in range(num_envs)], context="spawn"
+    )
+    assert isinstance(
+        envs.single_action_space, gym.spaces.Box
+    ), "only continuous action space is supported"
+    print("env defined")  # debugging
+
+    print(envs)
+
+    print(" --- env.reset() --- ")
+    print(envs.reset())
+
+    print(" --- env.step() --- ")
+    print(envs.step())
+
+
+if __name__ == "__main__":
+    main()
