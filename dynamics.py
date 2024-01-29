@@ -5,7 +5,7 @@ import copy
 from sklearn.metrics import mean_squared_error
 from autoencoder import Autoencoder
 from ray.air import session
-
+import re
 
 class Image:
     # TODO pass through the image without autoencoder for now, later compare with autoencoder
@@ -26,7 +26,7 @@ class Image:
         image = self.environment.get_camera_data(agent + "boxagent_camera")
         image = cv2.resize(image, (64, 64))
         result = self.autoencoder.encoder.predict(np.array([image]), verbose=0)[0]
-        # cv2.imwrite("/Users/cowolff/Documents/GitHub/s.mujoco_environment/ant-images/" + str(self.index) + ".png", image)
+        # cv2.imwrite("filepath" + str(self.index) + ".png", image)
         return 0, result, 0, 0
 
 
@@ -61,30 +61,40 @@ class Reward:
         return reward, []"""
 
     def dynamic(self, agent, actions):
-
-        print(self.environment.agents)
-
-        for key in self.environment.data_store.keys():
-            print(self.environment.data_store[key])
-        print(self.environment.filter_by_tag("Target"))
-        
         if not "targets" in self.environment.data_store.keys():
             self.environment.data_store["targets"] = self.environment.filter_by_tag(
                 "Target"
             )
 
+        if not "target_geoms" in self.environment.data_store.keys():
+            self.environment.data_store["target_geoms"] = []
+            
+            for target in self.environment.data_store["targets"]:
+                # TODO this is a hack, necessary because of the way the targets are named in the json/xml files
+
+                suffix = re.split('\d', target["name"])[0] + "_geom"
+                prefix = re.split('/', target["name"])[0]
+
+                target_geom_name = prefix + "/" + suffix
+
+                self.environment.data_store["target_geoms"].append(target_geom_name)
+
+
+
+
         if not "agent" in self.environment.data_store.keys():
             self.environment.data_store["agent"] = self.environment.filter_by_tag(
                 "Agent"
-            )
+            )[0]
 
         if not "last_distance" in self.environment.data_store.keys():
+            agent = self.environment.data_store["agent"]
+            targets = self.environment.data_store["targets"]
+
             self.environment.data_store["last_distance"] = min(
                 [
-                    self.environment.distance(
-                        self.environment.data_store["agent"], target
-                    )
-                    for target in self.environment.data_store["targets"]
+                    self.environment.distance(agent["position"], target["position"])
+                    for target in targets
                 ]
             )
 
@@ -92,25 +102,16 @@ class Reward:
         agent = self.environment.data_store["agent"]
         targets = self.environment.data_store["targets"]
 
-        # debugging:print agent and target
-        print("agent: ", agent)
-        print("targets: ", targets)
-
-        # xml path debugging
-        print("xml path: ", self.environment.xml_path)
-        # json path debugging
-        print("json file: ", self.environment.info_json)
-
         new_distance = min(
             [
-                self.environment.distance(agent, target)
+                self.environment.distance(agent["position"], target["position"])
                 for target in targets
             ]
         )
         reward = self.environment.data_store["last_distance"] - new_distance
         self.environment.data_store["last_distance"] = copy.deepcopy(new_distance)
 
-        return reward, []
+        return reward, [], 0, 0
 
     # def dynamic(self, agent, actions):
     #    # Minimal version that just returns the same reward for now
@@ -137,11 +138,15 @@ class Reward:
 
 
 def target_reward(mujoco_gym, agent):
-    # target = mujoco_gym.data_store["target"]
+    """1 if agent is colliding with target, 0 otherwise"""
+    targets = mujoco_gym.data_store["target_geoms"]
+
     reward = 0
 
-    if mujoco_gym.collision("agent/boxagent_geom", "target"):
-        return 1
+    for target in targets:
+        if mujoco_gym.collision(target, agent + "boxagent_geom"):
+            reward = 1
+            break
 
     return reward
 
@@ -156,10 +161,14 @@ def target_reward(mujoco_gym, agent):
 
 
 def target_done(mujoco_gym, agent):
-    if mujoco_gym.collision("target", "agent/boxagent_geom"):
-        return True
-    return False
+    """True if agent is colliding with target, False otherwise"""
+    targets = mujoco_gym.data_store["target_geoms"]
 
+    for target in targets:
+        if mujoco_gym.collision(target, agent + "boxagent_geom"):
+            return True
+        else:
+            return False
 
 """def border_done(mujoco_gym, agent):
     for border in ["border_geom", "border1_geom", "border2_geom", "border3_geom"]:

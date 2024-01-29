@@ -56,7 +56,13 @@ def ensure_shared_grads(model, shared_model):
 def train(rank, args, shared_model, config_dict):
     torch.manual_seed(args.seed + rank)
 
-    env = make_env(config_dict)
+    env = gym.vector.AsyncVectorEnv(
+        [make_env(config_dict)], context="spawn"
+    )
+    assert isinstance(
+        env.single_action_space, gym.spaces.Box
+    ), "only continuous action space is supported"
+
     env.reset()
 
     model = A3C_LSTM_GA(args)
@@ -212,18 +218,15 @@ def train(rank, args, shared_model, config_dict):
         optimizer.step()
 
 
-# build a main function for debugging. in it:
-# generate an env.
-# print, in a nice format:
-# the returns of env.reset
-# the returns of env.step
-
-
 def main():
     # set paths and such for the config dict
     # path to folder xml_files from current dir:
-    xml_file_path = os.path.join(os.getcwd(), "xml_debug_files", "advance_to_the_tea_tree.xml")
-    json_files = os.path.join(os.getcwd(), "xml_debug_files", "advance_to_the_tea_tree.json")
+    xml_file_path = os.path.join(
+        os.getcwd(), "xml_debug_files", "advance_to_the_tea_tree.xml"
+    )
+    json_files = os.path.join(
+        os.getcwd(), "xml_debug_files", "advance_to_the_tea_tree.json"
+    )
     agents = ["agent/"]
     num_envs = 2
 
@@ -242,22 +245,39 @@ def main():
         "tensorboard_writer": None,
     }
 
+
     envs = gym.vector.AsyncVectorEnv(
         [make_env(config_dict) for _ in range(num_envs)], context="spawn"
     )
     assert isinstance(
         envs.single_action_space, gym.spaces.Box
     ), "only continuous action space is supported"
-    print("env defined")  # debugging
 
-    print(envs)
+    # set up logging
+    logging.basicConfig(
+        filename="a3c.log",
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
 
-    print(" --- env.reset() --- ")
-    print(envs.reset())
+    # set up tensorboard
+    writer = SummaryWriter()
 
-    print(" --- env.step() --- ")
-    print(envs.step())
+    # set up model
+    shared_model = A3C_LSTM_GA(envs.single_observation_space, envs.single_action_space)
+    shared_model.share_memory()
 
+    # set up optimizer
+    optimizer = optim.Adam(shared_model.parameters(), lr=1e-4)
+    
+    # set up training
+    processes = []
+    for rank in range(0, 1):
+        p = torch.multiprocessing.Process(
+            target=train, args=(rank, args, shared_model, config_dict)
+        )
+        p.start()
+        processes.append(p)
 
 if __name__ == "__main__":
     main()

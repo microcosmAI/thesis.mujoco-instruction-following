@@ -41,8 +41,8 @@ class A3C_LSTM_GA(torch.nn.Module):
 
         # Instruction Processing
         self.gru_hidden_size = 256
-        self.input_size = args.input_size
-        self.embedding = nn.Embedding(self.input_size, 32)
+        #self.input_size = args.input_size
+        self.embedding = nn.Embedding(args.input_size, 32)
         self.gru = nn.GRU(32, self.gru_hidden_size)
 
         # Gated-Attention layers

@@ -1,4 +1,3 @@
-import vizdoom
 import argparse
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
@@ -6,21 +5,56 @@ import numpy as np
 import torch
 import torch.multiprocessing as mp
 
-import env as grounding_env
 from models import A3C_LSTM_GA
 from a3c_train import train
-from a3c_test import test
+#from a3c_test import test
 
 import logging
+
+from MuJoCo_Gym.mujoco_rl import MuJoCoRL
+from MuJoCo_Gym.wrappers import GymnasiumWrapper, GymWrapper
+from gymnasium.wrappers.frame_stack import FrameStack
+
+# from gymnasium.wrappers import NormalizeObservationV0
+from dynamics import *
+import argparse
+import os
+import random
+import time
+from distutils.util import strtobool
+import gym
+import numpy as np
+import torch.nn as nn
+import torch.optim as optim
+from torch.distributions.normal import Normal
+from torch.utils.tensorboard import SummaryWriter
+
+# from wrappers.record_episode_statistics import RecordEpisodeStatistics
+from progressbar import progressbar
+
+
+def make_env(config_dict):
+    def thunk():
+        env = MuJoCoRL(config_dict=config_dict)
+        env = GymWrapper(env, config_dict["agents"][0])
+        env = gym.wrappers.RecordEpisodeStatistics(env)
+        env = gym.wrappers.ClipAction(env)
+        env = gym.wrappers.NormalizeObservation(env)
+        env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
+        env = gym.wrappers.NormalizeReward(env)
+        env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
+        env.action_space.seed(1)
+        env.observation_space.seed(1)
+
+        return env
+
+    return thunk
 
 parser = argparse.ArgumentParser(description='Gated-Attention for Grounding')
 
 # Environment arguments
 parser.add_argument('-l', '--max-episode-length', type=int, default=30,
                     help='maximum length of an episode (default: 30)')
-parser.add_argument('-d', '--difficulty', type=str, default="hard",
-                    help="""Difficulty of the environment,
-                    "easy", "medium" or "hard" (default: hard)""")
 parser.add_argument('--living-reward', type=float, default=0,
                     help="""Default reward at each time step (default: 0,
                     change to -0.005 to encourage shorter paths)""")
@@ -34,13 +68,7 @@ parser.add_argument('-v', '--visualize', type=int, default=0,
 parser.add_argument('--sleep', type=float, default=0,
                     help="""Sleep between frames for better
                     visualization (default: 0)""")
-parser.add_argument('--scenario-path', type=str, default="maps/room.wad",
-                    help="""Doom scenario file to load
-                    (default: maps/room.wad)""")
-parser.add_argument('--interactive', type=int, default=0,
-                    help="""Interactive mode enables human to play
-                    (default: 0)""")
-parser.add_argument('--all-instr-file', type=str,
+parser.add_argument('--all-instr-file', type=str, # TODO adapt to new dataset
                     default="data/instructions_all.json",
                     help="""All instructions file
                     (default: data/instructions_all.json)""")
@@ -52,7 +80,7 @@ parser.add_argument('--test-instr-file', type=str,
                     default="data/instructions_test.json",
                     help="""Test instructions file
                     (default: data/instructions_test.json)""")
-parser.add_argument('--object-size-file', type=str,
+parser.add_argument('--object-size-file', type=str, # TODO make sure size modification gets added to xml generation
                     default="data/object_sizes.txt",
                     help='Object size file (default: data/object_sizes.txt)')
 
@@ -74,10 +102,11 @@ parser.add_argument('--load', type=str, default="0",
 parser.add_argument('-e', '--evaluate', type=int, default=0,
                     help="""0:Train, 1:Evaluate MultiTask Generalization
                     2:Evaluate Zero-shot Generalization (default: 0)""")
-parser.add_argument('--dump-location', type=str, default="./saved/",
+parser.add_argument('--dump-location', type=str, default="./saved/", # TODO separate into /logs and /saved_models
                     help='path to dump models and log (default: ./saved/)')
 
 if __name__ == '__main__':
+    
     args = parser.parse_args()
 
     if args.evaluate == 0:
@@ -94,8 +123,37 @@ if __name__ == '__main__':
     else:
         assert False, "Invalid evaluation type"
 
-    env = grounding_env.GroundingEnv(args)
-    args.input_size = len(env.word_to_idx)
+    #env = grounding_env.GroundingEnv(args)
+    #args.input_size = len(env.word_to_idx)
+    args.input_size = 10 # TODO remove
+
+    # set paths and such for the config dict
+    # path to folder xml_files from current dir:
+    xml_file_path = os.path.join(
+        os.getcwd(), "xml_debug_files", "advance_to_the_tea_tree.xml"
+    )
+    json_files = os.path.join(
+        os.getcwd(), "xml_debug_files", "advance_to_the_tea_tree.json"
+    )
+    agents = ["agent/"]
+    num_envs = 2
+
+    config_dict = {
+        "xmlPath": xml_file_path,
+        "infoJson": json_files,
+        "agents": agents,
+        "rewardFunctions": [target_reward],  # add collision reward later
+        "doneFunctions": [target_done],
+        "skipFrames": 5,
+        "environmentDynamics": [Image, Reward],
+        "freeJoint": True,
+        "renderMode": False,
+        "maxSteps": 4096 * 16,
+        "agentCameras": True,
+        "tensorboard_writer": None,
+    }
+
+
 
     # Setup logging
     if not os.path.exists(args.dump_location):
@@ -115,14 +173,15 @@ if __name__ == '__main__':
     processes = []
 
     # Start the test thread
-    p = mp.Process(target=test, args=(args.num_processes, args, shared_model))
-    p.start()
-    processes.append(p)
+    #p = mp.Process(target=test, args=(args.num_processes, args, shared_model))
+    #p.start()
+    #processes.append(p)
 
     # Start the training thread(s)
     for rank in range(0, args.num_processes):
-        p = mp.Process(target=train, args=(rank, args, shared_model))
+        p = mp.Process(target=train, args=(rank, args, shared_model, config_dict))
         p.start()
         processes.append(p)
     for p in processes:
         p.join()
+
