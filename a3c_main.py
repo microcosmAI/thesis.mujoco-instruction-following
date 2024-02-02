@@ -105,7 +105,7 @@ parser.add_argument('-e', '--evaluate', type=int, default=0,
 parser.add_argument('--dump-location', type=str, default="./saved/", # TODO separate into /logs and /saved_models
                     help='path to dump models and log (default: ./saved/)')
 
-if __name__ == '__main__':
+def main():
     
     args = parser.parse_args()
 
@@ -145,7 +145,7 @@ if __name__ == '__main__':
         "rewardFunctions": [target_reward],  # add collision reward later
         "doneFunctions": [target_done],
         "skipFrames": 5,
-        "environmentDynamics": [Image, Reward],
+        "environmentDynamics": [Reward],
         "freeJoint": True,
         "renderMode": False,
         "maxSteps": 4096 * 16,
@@ -160,7 +160,7 @@ if __name__ == '__main__':
         os.makedirs(args.dump_location)
     logging.basicConfig(filename=args.dump_location+log_filename,
                         level=logging.INFO)
-
+    
     shared_model = A3C_LSTM_GA(args)
 
     # Load the model
@@ -177,6 +177,11 @@ if __name__ == '__main__':
     #p.start()
     #processes.append(p)
 
+    # Debugging: start a single training thread
+    print("Starting a single training thread")
+    train(0, args, shared_model, config_dict)
+    print("Finished training")
+
     # Start the training thread(s)
     for rank in range(0, args.num_processes):
         p = mp.Process(target=train, args=(rank, args, shared_model, config_dict))
@@ -184,4 +189,8 @@ if __name__ == '__main__':
         processes.append(p)
     for p in processes:
         p.join()
+
+
+if __name__ == "__main__":
+    main()
 

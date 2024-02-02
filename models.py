@@ -103,5 +103,6 @@ class A3C_LSTM_GA(torch.nn.Module):
         hx, cx = self.lstm(x, (hx, cx))
         time_emb = self.time_emb_layer(tx)
         x = torch.cat((hx, time_emb.view(-1, self.time_emb_dim)), 1)
+        print("end of forward")
 
         return self.critic_linear(x), self.actor_linear(x), (hx, cx)

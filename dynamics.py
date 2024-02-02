@@ -6,28 +6,33 @@ from sklearn.metrics import mean_squared_error
 from autoencoder import Autoencoder
 from ray.air import session
 import re
+import os
 
-class Image:
+"""class Image:
     # TODO pass through the image without autoencoder for now, later compare with autoencoder
     # TODO rewrite autoencoder in torch, not tf
     def __init__(self, environment):
         self.environment = environment
-        self.observation_space = {
-            "low": [0 for _ in range(50)],
-            "high": [1 for _ in range(50)],
-        }
+        #self.observation_space = {"low": [0 for _ in range(50)], "high": [1 for _ in range(50)]}
+        # make the observation space a box of 64x64x3
+        self.observation_space = {"low": [0 for _ in range(256*256*3)], "high": [1 for _ in range(256*256*3)]}
         self.action_space = {"low": [], "high": []}
-        self.autoencoder = Autoencoder(latent_dim=50, input_shape=(64, 64, 3))
-        self.autoencoder.encoder.load_weights("models/encoder50.h5")
+        #self.autoencoder = Autoencoder(latent_dim=50, input_shape=(256*256*3))
+        #self.autoencoder.encoder.load_weights("models/encoder50.h5")
         self.index = 0
+      
 
     def dynamic(self, agent, actions):
         self.index = self.index + 1
         image = self.environment.get_camera_data(agent + "boxagent_camera")
-        image = cv2.resize(image, (64, 64))
-        result = self.autoencoder.encoder.predict(np.array([image]), verbose=0)[0]
-        # cv2.imwrite("filepath" + str(self.index) + ".png", image)
-        return 0, result, 0, 0
+        image = cv2.resize(image, (256, 256))
+        #result = self.autoencoder.encoder.predict(np.array([image]), verbose=0)[0]
+        result = image.flatten() # TODO remove this line, inspect result
+        # set filepath to current filepath + "debug images"
+        filepath = os.path.join(os.getcwd(), "debug_images")
+        cv2.imwrite(filepath + str(self.index) + ".png", image)
+        return 0, result, 0, 0"""
+    
 
 
 class Reward:

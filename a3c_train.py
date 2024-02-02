@@ -9,6 +9,8 @@ from MuJoCo_Gym.mujoco_rl import MuJoCoRL
 from MuJoCo_Gym.wrappers import GymnasiumWrapper, GymWrapper
 from gymnasium.wrappers.frame_stack import FrameStack
 
+import instruction_processing
+
 # from gymnasium.wrappers import NormalizeObservationV0
 from dynamics import *
 import argparse
@@ -46,6 +48,31 @@ def make_env(config_dict):
     return thunk
 
 
+def make_only_env(config_dict):
+    def thunk():
+        env = MuJoCoRL(config_dict=config_dict)
+
+        return env
+
+    return thunk
+
+
+def wrap_env(env):
+    env = GymWrapper(env, config_dict["agents"][0])
+    env = gym.wrappers.RecordEpisodeStatistics(env)
+    env = gym.wrappers.ClipAction(env)
+    env = gym.wrappers.NormalizeObservation(env)
+    env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
+    env = gym.wrappers.NormalizeReward(env)
+    env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
+    env.action_space.seed(1)
+    env.observation_space.seed(1)
+    # wrap in asyncvectorenv
+    env = gym.vector.AsyncVectorEnv([env], context="spawn")
+
+    return env
+
+
 def ensure_shared_grads(model, shared_model):
     for param, shared_param in zip(model.parameters(), shared_model.parameters()):
         if shared_param.grad is not None:
@@ -53,15 +80,23 @@ def ensure_shared_grads(model, shared_model):
         shared_param._grad = param.grad
 
 
+def get_image(env, camera):
+    image = env.get_camera_data(camera)
+    image = np.expand_dims(image, 0)  # add batch size dimension
+    image = torch.from_numpy(image).float() / 255.0
+    image = image.permute(0, 3, 1, 2)  # reorder for pytorch
+    return image
+
+
 def train(rank, args, shared_model, config_dict):
     torch.manual_seed(args.seed + rank)
 
-    env = gym.vector.AsyncVectorEnv(
-        [make_env(config_dict)], context="spawn"
+    env = make_only_env(config_dict)()
+
+    # get word_to_idx
+    word_to_idx = instruction_processing.get_word_to_idx_from_dir(  # TODO rename word_to_idx because it is a dumb name
+        os.path.join(os.getcwd(), "xml_debug_files")
     )
-    assert isinstance(
-        env.single_action_space, gym.spaces.Box
-    ), "only continuous action space is supported"
 
     env.reset()
 
@@ -80,19 +115,21 @@ def train(rank, args, shared_model, config_dict):
     p_losses = []
     v_losses = []
 
-    (
-        (image, instruction),
-        _,
-        _,
-        _,
-    ) = env.reset()  # TODO get correct instructions, get image
+    # TODO here is where the a3c implementation gets the image and instruction from the environment
+    observation = env.reset()
+    # The instruction is the infoJsons file name # TODO this might change later
+    instruction = config_dict["infoJson"].split("/")[-1].split(".")[0].replace("_", " ")
+    image = get_image(env=env, camera="agent/boxagent_camera")
+
     instruction_idx = []
     for word in instruction.split(" "):
-        instruction_idx.append(env.word_to_idx[word])
+        instruction_idx.append(word_to_idx[word])
     instruction_idx = np.array(instruction_idx)
 
-    image = torch.from_numpy(image).float() / 255.0
     instruction_idx = torch.from_numpy(instruction_idx).view(1, -1)
+
+    # debugging: print idx
+    print("instruction_idx: ", instruction_idx)
 
     done = True
 
@@ -120,7 +157,7 @@ def train(rank, args, shared_model, config_dict):
             tx = Variable(torch.from_numpy(np.array([episode_length])).long())
 
             value, logit, (hx, cx) = model(
-                (Variable(image.unsqueeze(0)), Variable(instruction_idx), (tx, hx, cx))
+                (Variable(image), Variable(instruction_idx), (tx, hx, cx))
             )
             prob = F.softmax(logit)
             log_prob = F.log_softmax(logit)
@@ -131,6 +168,11 @@ def train(rank, args, shared_model, config_dict):
             log_prob = log_prob.gather(1, Variable(action))
 
             action = action.numpy()[0, 0]
+            image = get_image(env=env, camera="agent/boxagent_camera")
+
+            # debugging: print env.step returns
+            print("env.step returns: ", env.step(action))
+
             (image, _), reward, done, _ = env.step(
                 action
             )  # TODO get image from camera, get reward/done from environment dynamics
@@ -141,11 +183,13 @@ def train(rank, args, shared_model, config_dict):
                 (image, instruction), _, _, _ = env.reset()
                 instruction_idx = []
                 for word in instruction.split(" "):
-                    instruction_idx.append(env.word_to_idx[word])
+                    instruction_idx.append(word_to_idx[word])
+                print("instruction_idx2", instruction_idx)
                 instruction_idx = np.array(instruction_idx)
+                print("instruction_idx3", instruction_idx)
                 instruction_idx = torch.from_numpy(instruction_idx).view(1, -1)
 
-            image = torch.from_numpy(image).float() / 255.0
+            image = get_image(env=env, camera="agent/boxagent_camera")
 
             values.append(value)
             log_probs.append(log_prob)
@@ -237,14 +281,13 @@ def main():
         "rewardFunctions": [target_reward],  # add collision reward later
         "doneFunctions": [target_done],
         "skipFrames": 5,
-        "environmentDynamics": [Image, Reward],
+        "environmentDynamics": [Reward],
         "freeJoint": True,
         "renderMode": False,
         "maxSteps": 4096 * 16,
         "agentCameras": True,
         "tensorboard_writer": None,
     }
-
 
     envs = gym.vector.AsyncVectorEnv(
         [make_env(config_dict) for _ in range(num_envs)], context="spawn"
@@ -269,7 +312,7 @@ def main():
 
     # set up optimizer
     optimizer = optim.Adam(shared_model.parameters(), lr=1e-4)
-    
+
     # set up training
     processes = []
     for rank in range(0, 1):
@@ -278,6 +321,7 @@ def main():
         )
         p.start()
         processes.append(p)
+
 
 if __name__ == "__main__":
     main()
