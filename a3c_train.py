@@ -87,14 +87,22 @@ def get_image(env, camera):
     image = image.permute(0, 3, 1, 2)  # reorder for pytorch
     return image
 
+def get_instruction_idx(instruction, word_to_idx):
+    instruction_idx = []
+    for word in instruction.split(" "):
+        instruction_idx.append(word_to_idx[word])
+    instruction_idx = np.array(instruction_idx)
+    instruction_idx = torch.from_numpy(instruction_idx).view(1, -1)
+    return instruction_idx
+
 
 def train(rank, args, shared_model, config_dict):
     torch.manual_seed(args.seed + rank)
 
     env = make_only_env(config_dict)()
 
-    # get word_to_idx
-    word_to_idx = instruction_processing.get_word_to_idx_from_dir(  # TODO rename word_to_idx because it is a dumb name
+    # get word_to_idx # TODO rename word_to_idx because it is a dumb name
+    word_to_idx = instruction_processing.get_word_to_idx_from_dir(  
         os.path.join(os.getcwd(), "xml_debug_files")
     )
 
@@ -118,18 +126,11 @@ def train(rank, args, shared_model, config_dict):
     # TODO here is where the a3c implementation gets the image and instruction from the environment
     observation = env.reset()
     # The instruction is the infoJsons file name # TODO this might change later
+    # TODO figure out a way to get current instruction with each reset
     instruction = config_dict["infoJson"].split("/")[-1].split(".")[0].replace("_", " ")
     image = get_image(env=env, camera="agent/boxagent_camera")
 
-    instruction_idx = []
-    for word in instruction.split(" "):
-        instruction_idx.append(word_to_idx[word])
-    instruction_idx = np.array(instruction_idx)
-
-    instruction_idx = torch.from_numpy(instruction_idx).view(1, -1)
-
-    # debugging: print idx
-    print("instruction_idx: ", instruction_idx)
+    instruction_idx = get_instruction_idx(instruction, word_to_idx)
 
     done = True
 
@@ -181,13 +182,7 @@ def train(rank, args, shared_model, config_dict):
 
             if done:
                 (image, instruction), _, _, _ = env.reset()
-                instruction_idx = []
-                for word in instruction.split(" "):
-                    instruction_idx.append(word_to_idx[word])
-                print("instruction_idx2", instruction_idx)
-                instruction_idx = np.array(instruction_idx)
-                print("instruction_idx3", instruction_idx)
-                instruction_idx = torch.from_numpy(instruction_idx).view(1, -1)
+                instruction_idx = get_instruction_idx(instruction, word_to_idx)
 
             image = get_image(env=env, camera="agent/boxagent_camera")
 
