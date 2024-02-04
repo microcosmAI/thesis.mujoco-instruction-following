@@ -13,18 +13,18 @@ def normalized_columns_initializer(weights, std=1.0):
 
 def weights_init(m):
     classname = m.__class__.__name__
-    if classname.find('Conv') != -1:
+    if classname.find("Conv") != -1:
         weight_shape = list(m.weight.data.size())
         fan_in = np.prod(weight_shape[1:4])
         fan_out = np.prod(weight_shape[2:4]) * weight_shape[0]
-        w_bound = np.sqrt(6. / (fan_in + fan_out))
+        w_bound = np.sqrt(6.0 / (fan_in + fan_out))
         m.weight.data.uniform_(-w_bound, w_bound)
         m.bias.data.fill_(0)
-    elif classname.find('Linear') != -1:
+    elif classname.find("Linear") != -1:
         weight_shape = list(m.weight.data.size())
         fan_in = weight_shape[1]
         fan_out = weight_shape[0]
-        w_bound = np.sqrt(6. / (fan_in + fan_out))
+        w_bound = np.sqrt(6.0 / (fan_in + fan_out))
         m.weight.data.uniform_(-w_bound, w_bound)
         m.bias.data.fill_(0)
 
@@ -41,7 +41,7 @@ class A3C_LSTM_GA(torch.nn.Module):
 
         # Instruction Processing
         self.gru_hidden_size = 256
-        #self.input_size = args.input_size
+        # self.input_size = args.input_size
         self.embedding = nn.Embedding(args.input_size, 32)
         self.gru = nn.GRU(32, self.gru_hidden_size)
 
@@ -51,8 +51,8 @@ class A3C_LSTM_GA(torch.nn.Module):
         # Time embedding layer, helps in stabilizing value prediction
         self.time_emb_dim = 32
         self.time_emb_layer = nn.Embedding(
-                args.max_episode_length+1,
-                self.time_emb_dim)
+            args.max_episode_length + 1, self.time_emb_dim
+        )
 
         # A3C-LSTM layers
         self.linear = nn.Linear(64 * 8 * 17, 256)
@@ -63,10 +63,12 @@ class A3C_LSTM_GA(torch.nn.Module):
         # Initializing weights
         self.apply(weights_init)
         self.actor_linear.weight.data = normalized_columns_initializer(
-            self.actor_linear.weight.data, 0.01)
+            self.actor_linear.weight.data, 0.01
+        )
         self.actor_linear.bias.data.fill_(0)
         self.critic_linear.weight.data = normalized_columns_initializer(
-            self.critic_linear.weight.data, 1.0)
+            self.critic_linear.weight.data, 1.0
+        )
         self.critic_linear.bias.data.fill_(0)
 
         self.lstm.bias_ih.data.fill_(0)
@@ -81,25 +83,29 @@ class A3C_LSTM_GA(torch.nn.Module):
         x = F.relu(self.conv2(x))
         x_image_rep = F.relu(self.conv3(x))
 
+        # NOTE: input image size, instr size, and image repr. size are confirmed identical to the original code.
+
+        # Fixed version (different dimensionality of hx)
         # Get the instruction representation
-        encoder_hidden = Variable(torch.zeros(1, self.gru_hidden_size)) # NOTE: changed shape from (1, 1, self.gru_hidden_size) to (1, self.gru_hidden_size)
+        encoder_hidden = Variable(torch.zeros(1, self.gru.hidden_size))
         for i in range(input_inst.data.size(1)):
-
             word_embedding = self.embedding(input_inst[0, i]).unsqueeze(0)
-            _, encoder_hidden = self.gru(word_embedding, encoder_hidden)
-            
 
-        x_instr_rep = encoder_hidden.view(encoder_hidden.size(1), -1)
+            _, encoder_hidden = self.gru(word_embedding, encoder_hidden)
+        # x_instr_rep = encoder_hidden.view(encoder_hidden.size(1), -1)
+        x_instr_rep = encoder_hidden.view(
+            -1
+        )  # NOTE: Reshaped encoder_hidden to 1D tensor to match the input requirements of linear layers in newer PyTorch versions.
 
         # Get the attention vector from the instruction representation
         x_attention = F.sigmoid(self.attn_linear(x_instr_rep))
 
         # Gated-Attention
-        x_attention = x_attention.unsqueeze(2).unsqueeze(3)
+        x_attention = x_attention.unsqueeze(1).unsqueeze(2)
         x_attention = x_attention.expand(1, 64, 8, 17)
         assert x_image_rep.size() == x_attention.size()
-        x = x_image_rep*x_attention
-        x = x.view(x.size(0), -1)
+        x = x_image_rep * x_attention
+        x = x.contiguous().view(x.size(0), -1)
 
         # A3C-LSTM
         x = F.relu(self.linear(x))

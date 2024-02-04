@@ -85,7 +85,9 @@ def get_image(env, camera):
     image = np.expand_dims(image, 0)  # add batch size dimension
     image = torch.from_numpy(image).float() / 255.0
     image = image.permute(0, 3, 1, 2)  # reorder for pytorch
+    image = F.interpolate(image, size=(168, 300)) # resize for the model TODO look into getting different camera resolutions
     return image
+
 
 def get_instruction_idx(instruction, word_to_idx):
     instruction_idx = []
@@ -94,6 +96,18 @@ def get_instruction_idx(instruction, word_to_idx):
     instruction_idx = np.array(instruction_idx)
     instruction_idx = torch.from_numpy(instruction_idx).view(1, -1)
     return instruction_idx
+
+def map_discrete_to_continuous(action):
+    # debugging: print action
+    print("action: ", action)
+    if action == 0:  # turn_left
+        return np.array([0, 0, 0, 0, 1, 0])
+    elif action == 1:  # turn_right
+        return np.array([0, 0, 0, 0, -1, 0])
+    elif action == 2:  # move_forward
+        return np.array([1, 0, 0, 0, 0, 0])
+    else:
+        raise ValueError("Invalid action")
 
 
 def train(rank, args, shared_model, config_dict):
@@ -160,28 +174,35 @@ def train(rank, args, shared_model, config_dict):
             value, logit, (hx, cx) = model(
                 (Variable(image), Variable(instruction_idx), (tx, hx, cx))
             )
-            prob = F.softmax(logit)
+            prob = F.softmax(logit, dim=-1)
             log_prob = F.log_softmax(logit)
             entropy = -(log_prob * prob).sum(1)
             entropies.append(entropy)
 
-            action = prob.multinomial().data
+            action = prob.multinomial(num_samples=1).data # NOTE samples now specified due to new pytorch version
             log_prob = log_prob.gather(1, Variable(action))
 
-            action = action.numpy()[0, 0]
+            # Map the discrete action to the continuous action space
+            action = map_discrete_to_continuous(action.numpy()[0, 0])
+
+            # Create the action dictionary
+            action_dict = {config_dict["agents"][0]: action}
+
             image = get_image(env=env, camera="agent/boxagent_camera")
 
-            # debugging: print env.step returns
-            print("env.step returns: ", env.step(action))
+            _, reward, done_dict, trunc_dict, _ = env.step(action_dict)
 
-            (image, _), reward, done, _ = env.step(
-                action
-            )  # TODO get image from camera, get reward/done from environment dynamics
+            termination = done_dict[config_dict["agents"][0]]
+            truncation = trunc_dict[config_dict["agents"][0]]
 
+            done = termination or truncation
             done = done or episode_length >= args.max_episode_length
 
             if done:
-                (image, instruction), _, _, _ = env.reset()
+                #(image, instruction), _, _, _ = env.reset()
+                image = get_image(env=env, camera="agent/boxagent_camera")
+                # TODO: get the current instruction
+                instruction = config_dict["infoJson"].split("/")[-1].split(".")[0].replace("_", " ")
                 instruction_idx = get_instruction_idx(instruction, word_to_idx)
 
             image = get_image(env=env, camera="agent/boxagent_camera")
@@ -290,6 +311,13 @@ def main():
     assert isinstance(
         envs.single_action_space, gym.spaces.Box
     ), "only continuous action space is supported"
+
+    # print action and observation space details and shapes
+    print("Action space: ", envs.single_action_space)
+    print("Observation space: ", envs.single_observation_space)
+    print("Action space shape: ", envs.single_action_space.shape)
+    print("Observation space shape: ", envs.single_observation_space.shape)
+
 
     # set up logging
     logging.basicConfig(
