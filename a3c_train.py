@@ -57,18 +57,18 @@ def make_only_env(config_dict):
     return thunk
 
 
-def wrap_env(env):
-    env = GymWrapper(env, config_dict["agents"][0])
-    env = gym.wrappers.RecordEpisodeStatistics(env)
-    env = gym.wrappers.ClipAction(env)
-    env = gym.wrappers.NormalizeObservation(env)
-    env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
-    env = gym.wrappers.NormalizeReward(env)
-    env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
-    env.action_space.seed(1)
-    env.observation_space.seed(1)
+def wrap_env(env, config_dict):
+    #env = GymWrapper(env, config_dict["agents"][0])
+    #env = gym.wrappers.RecordEpisodeStatistics(env)
+    #env = gym.wrappers.ClipAction(env)
+    #env = gym.wrappers.NormalizeObservation(env)
+    #env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
+    #env = gym.wrappers.NormalizeReward(env)
+    #env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
+    #env.action_space.seed(1)
+    #env.observation_space.seed(1)
     # wrap in asyncvectorenv
-    env = gym.vector.AsyncVectorEnv([env], context="spawn")
+    env = gym.vector.AsyncVectorEnv([lambda: make_only_env(config_dict)()], context="spawn")
 
     return env
 
@@ -98,8 +98,6 @@ def get_instruction_idx(instruction, word_to_idx):
     return instruction_idx
 
 def map_discrete_to_continuous(action):
-    # debugging: print action
-    print("action: ", action)
     if action == 0:  # turn_left
         return np.array([0, 0, 0, 0, 1, 0])
     elif action == 1:  # turn_right
@@ -114,6 +112,7 @@ def train(rank, args, shared_model, config_dict):
     torch.manual_seed(args.seed + rank)
 
     env = make_only_env(config_dict)()
+    #env = wrap_env(env, config_dict)
 
     # get word_to_idx # TODO rename word_to_idx because it is a dumb name
     word_to_idx = instruction_processing.get_word_to_idx_from_dir(  
@@ -213,12 +212,11 @@ def train(rank, args, shared_model, config_dict):
 
             if done:
                 break
-
         R = torch.zeros(1, 1)
         if not done:
             tx = Variable(torch.from_numpy(np.array([episode_length])).long())
             value, _, _ = model(
-                (Variable(image.unsqueeze(0)), Variable(instruction_idx), (tx, hx, cx))
+                (Variable(image), Variable(instruction_idx), (tx, hx, cx))
             )
             R = value.data
 
@@ -229,12 +227,13 @@ def train(rank, args, shared_model, config_dict):
 
         gae = torch.zeros(1, 1)
         for i in reversed(range(len(rewards))):
-            R = args.gamma * R + rewards[i]
+
+            R = args.gamma * R + rewards[i]['agent/']
             advantage = R - values[i]
             value_loss = value_loss + 0.5 * advantage.pow(2)
 
             # Generalized Advantage Estimataion
-            delta_t = rewards[i] + args.gamma * values[i + 1].data - values[i].data
+            delta_t = rewards[i]['agent/'] + args.gamma * values[i + 1].data - values[i].data
             gae = gae * args.gamma * args.tau + delta_t
 
             policy_loss = (
