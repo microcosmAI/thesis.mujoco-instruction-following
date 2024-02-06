@@ -35,7 +35,7 @@ def get_word_to_idx_from_dir(instructions_dir_path):
         dict: A dictionary mapping each unique word in the file names to its index.
     """
     word_to_idx = {}
-    filenames = [f for f in os.listdir(instructions_dir_path) if f.endswith(".xml")]
+    filenames = sorted([f for f in os.listdir(instructions_dir_path) if f.endswith(".xml")])
 
     for filename in filenames:
         prompt = filename.split(".")[0].replace("_", " ")

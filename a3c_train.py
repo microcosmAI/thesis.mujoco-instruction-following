@@ -11,6 +11,8 @@ from gymnasium.wrappers.frame_stack import FrameStack
 
 import instruction_processing
 
+from wrappers import ImageWrapper
+
 # from gymnasium.wrappers import NormalizeObservationV0
 from dynamics import *
 import argparse
@@ -18,7 +20,7 @@ import os
 import random
 import time
 from distutils.util import strtobool
-import gym
+import gymnasium as gym
 import numpy as np
 import torch
 import torch.nn as nn
@@ -33,13 +35,14 @@ from progressbar import progressbar
 def make_env(config_dict):
     def thunk():
         env = MuJoCoRL(config_dict=config_dict)
-        env = GymWrapper(env, config_dict["agents"][0])
+        env = GymnasiumWrapper(env, config_dict["agents"][0])
         env = gym.wrappers.RecordEpisodeStatistics(env)
         env = gym.wrappers.ClipAction(env)
         env = gym.wrappers.NormalizeObservation(env)
         env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
         env = gym.wrappers.NormalizeReward(env)
         env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
+        env = ImageWrapper(env, camera="agent/boxagent_camera")
         env.action_space.seed(1)
         env.observation_space.seed(1)
 
@@ -58,18 +61,18 @@ def make_only_env(config_dict):
 
 
 def wrap_env(env, config_dict):
-    #env = GymWrapper(env, config_dict["agents"][0])
-    #env = gym.wrappers.RecordEpisodeStatistics(env)
-    #env = gym.wrappers.ClipAction(env)
-    #env = gym.wrappers.NormalizeObservation(env)
-    #env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
-    #env = gym.wrappers.NormalizeReward(env)
-    #env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
-    #env.action_space.seed(1)
-    #env.observation_space.seed(1)
-    # wrap in asyncvectorenv
+    env = GymnasiumWrapper(env, config_dict["agents"][0])
+    env = gym.wrappers.RecordEpisodeStatistics(env)
+    env = gym.wrappers.ClipAction(env)
+    env = gym.wrappers.NormalizeObservation(env)
+    env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
+    env = gym.wrappers.NormalizeReward(env)
+    env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
+    env.action_space.seed(1)
+    env.observation_space.seed(1)
+    # wrap in syncvectorenv # NOTE must use syncvectorenv to access individual env functions
     env = gym.vector.AsyncVectorEnv([lambda: make_only_env(config_dict)()], context="spawn")
-
+    #env = gym.vector.SyncVectorEnv([lambda: make_only_env(config_dict)()])
     return env
 
 
@@ -81,7 +84,8 @@ def ensure_shared_grads(model, shared_model):
 
 
 def get_image(env, camera):
-    image = env.get_camera_data(camera)
+    image = env.env.environment.get_camera_data(camera) # TODO env.env or env.environment
+    # TODO write image
     image = np.expand_dims(image, 0)  # add batch size dimension
     image = torch.from_numpy(image).float() / 255.0
     image = image.permute(0, 3, 1, 2)  # reorder for pytorch
@@ -111,14 +115,20 @@ def map_discrete_to_continuous(action):
 def train(rank, args, shared_model, config_dict):
     torch.manual_seed(args.seed + rank)
 
-    env = make_only_env(config_dict)()
+    #env = make_only_env(config_dict)()
+
     #env = wrap_env(env, config_dict)
+
+    # make env as async vector env
+    env = gym.vector.AsyncVectorEnv([make_env(config_dict) for _ in range(1)], context="spawn")
 
     # get word_to_idx # TODO rename word_to_idx because it is a dumb name
     word_to_idx = instruction_processing.get_word_to_idx_from_dir(  
         os.path.join(os.getcwd(), "xml_debug_files")
     )
 
+    # debugging: print reset returns
+    print(env.reset())
     env.reset()
 
     model = A3C_LSTM_GA(args)
@@ -138,6 +148,8 @@ def train(rank, args, shared_model, config_dict):
 
     # TODO here is where the a3c implementation gets the image and instruction from the environment
     observation = env.reset()
+    print("Observation: ")
+    print(observation)
     # The instruction is the infoJsons file name # TODO this might change later
     # TODO figure out a way to get current instruction with each reset
     instruction = config_dict["infoJson"].split("/")[-1].split(".")[0].replace("_", " ")
@@ -149,6 +161,8 @@ def train(rank, args, shared_model, config_dict):
 
     episode_length = 0
     num_iters = 0
+
+    img_nr = 0
     while True:
         # Sync with the shared model
         model.load_state_dict(shared_model.state_dict())
@@ -167,6 +181,18 @@ def train(rank, args, shared_model, config_dict):
         entropies = []
 
         for step in range(args.num_steps):
+            if step % 100 == 0:
+                # write image to disk
+                img = get_image(env=env, camera="agent/boxagent_camera")
+                # store image in folder as image_{step}.png
+                img = img.permute(0, 2, 3, 1).numpy()
+                img = np.squeeze(img)
+                img = (img * 255).astype(np.uint8)
+                name = "image_{}.png".format(img_nr)
+                # write to ./images dir
+                cv2.imwrite(os.path.join(os.getcwd(), "images", name), img)
+                img_nr += 1
+
             episode_length += 1
             tx = Variable(torch.from_numpy(np.array([episode_length])).long())
 
@@ -181,23 +207,17 @@ def train(rank, args, shared_model, config_dict):
             action = prob.multinomial(num_samples=1).data # NOTE samples now specified due to new pytorch version
             log_prob = log_prob.gather(1, Variable(action))
 
-            # Map the discrete action to the continuous action space
-            action = map_discrete_to_continuous(action.numpy()[0, 0])
-
-            # Create the action dictionary
-            action_dict = {config_dict["agents"][0]: action}
 
             image = get_image(env=env, camera="agent/boxagent_camera")
 
-            _, reward, done_dict, trunc_dict, _ = env.step(action_dict)
-
-            termination = done_dict[config_dict["agents"][0]]
-            truncation = trunc_dict[config_dict["agents"][0]]
+            print(env.step(action))
+            _, reward, termination, truncation, _ = env.step(action) # TODO check if this is correct
 
             done = termination or truncation
-            done = done or episode_length >= args.max_episode_length
+            done = done or episode_length >= args.max_episode_length # TODO check if this is necessary
 
             if done:
+                env.reset()
                 #(image, instruction), _, _, _ = env.reset()
                 image = get_image(env=env, camera="agent/boxagent_camera")
                 # TODO: get the current instruction
@@ -227,13 +247,12 @@ def train(rank, args, shared_model, config_dict):
 
         gae = torch.zeros(1, 1)
         for i in reversed(range(len(rewards))):
-
-            R = args.gamma * R + rewards[i]['agent/']
+            R = args.gamma * R + rewards[i]
             advantage = R - values[i]
             value_loss = value_loss + 0.5 * advantage.pow(2)
 
             # Generalized Advantage Estimataion
-            delta_t = rewards[i]['agent/'] + args.gamma * values[i + 1].data - values[i].data
+            delta_t = rewards[i] + args.gamma * values[i + 1].data - values[i].data
             gae = gae * args.gamma * args.tau + delta_t
 
             policy_loss = (
@@ -307,6 +326,7 @@ def main():
     envs = gym.vector.AsyncVectorEnv(
         [make_env(config_dict) for _ in range(num_envs)], context="spawn"
     )
+    # print type of action space
     assert isinstance(
         envs.single_action_space, gym.spaces.Box
     ), "only continuous action space is supported"
