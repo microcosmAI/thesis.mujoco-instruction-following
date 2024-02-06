@@ -1,3 +1,4 @@
 # Ignore all output files
 data/curriculum/*
 !data/curriculum/
+images/
