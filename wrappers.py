@@ -15,6 +15,7 @@ class ImageWrapper(gym.Wrapper):
         )
 
     def step(self, action):
+        # TODO check if this is the right way to get the observation or if done is not truncated, terminated
         _, reward, done, info = self.env.step(action)
         observation = self.get_image(self.env, self.camera)
         return observation, reward, done, info
@@ -24,7 +25,6 @@ class ImageWrapper(gym.Wrapper):
         env_observation = list(self.env.reset())
         observation = [image]
         observation.extend(env_observation[1:])
-        print("observation", observation)
         return tuple(observation)
 
     def get_image(self, env, camera):

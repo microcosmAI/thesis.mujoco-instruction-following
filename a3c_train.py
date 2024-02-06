@@ -127,8 +127,6 @@ def train(rank, args, shared_model, config_dict):
         os.path.join(os.getcwd(), "xml_debug_files")
     )
 
-    # debugging: print reset returns
-    print(env.reset())
     env.reset()
 
     model = A3C_LSTM_GA(args)
@@ -147,13 +145,11 @@ def train(rank, args, shared_model, config_dict):
     v_losses = []
 
     # TODO here is where the a3c implementation gets the image and instruction from the environment
-    observation = env.reset()
-    print("Observation: ")
-    print(observation)
+    image, _ = env.reset()
+
     # The instruction is the infoJsons file name # TODO this might change later
     # TODO figure out a way to get current instruction with each reset
     instruction = config_dict["infoJson"].split("/")[-1].split(".")[0].replace("_", " ")
-    image = get_image(env=env, camera="agent/boxagent_camera")
 
     instruction_idx = get_instruction_idx(instruction, word_to_idx)
 
@@ -181,17 +177,6 @@ def train(rank, args, shared_model, config_dict):
         entropies = []
 
         for step in range(args.num_steps):
-            if step % 100 == 0:
-                # write image to disk
-                img = get_image(env=env, camera="agent/boxagent_camera")
-                # store image in folder as image_{step}.png
-                img = img.permute(0, 2, 3, 1).numpy()
-                img = np.squeeze(img)
-                img = (img * 255).astype(np.uint8)
-                name = "image_{}.png".format(img_nr)
-                # write to ./images dir
-                cv2.imwrite(os.path.join(os.getcwd(), "images", name), img)
-                img_nr += 1
 
             episode_length += 1
             tx = Variable(torch.from_numpy(np.array([episode_length])).long())
@@ -207,24 +192,19 @@ def train(rank, args, shared_model, config_dict):
             action = prob.multinomial(num_samples=1).data # NOTE samples now specified due to new pytorch version
             log_prob = log_prob.gather(1, Variable(action))
 
-
-            image = get_image(env=env, camera="agent/boxagent_camera")
-
-            print(env.step(action))
-            _, reward, termination, truncation, _ = env.step(action) # TODO check if this is correct
+            image, reward, termination, truncation, _ = env.step(action) # TODO this is incorrect
 
             done = termination or truncation
             done = done or episode_length >= args.max_episode_length # TODO check if this is necessary
 
             if done:
-                env.reset()
-                #(image, instruction), _, _, _ = env.reset()
-                image = get_image(env=env, camera="agent/boxagent_camera")
+                image, _, _, _ = env.reset()
                 # TODO: get the current instruction
                 instruction = config_dict["infoJson"].split("/")[-1].split(".")[0].replace("_", " ")
                 instruction_idx = get_instruction_idx(instruction, word_to_idx)
 
-            image = get_image(env=env, camera="agent/boxagent_camera")
+            # TODO check A3C implementation for what happens here
+            #image = get_image(env=env, camera="agent/boxagent_camera")
 
             values.append(value)
             log_probs.append(log_prob)
