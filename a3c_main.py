@@ -151,6 +151,7 @@ def main():
         "maxSteps": 4096 * 16,
         "agentCameras": True,
         "tensorboard_writer": None,
+        "sensorResolution": (300, 168),
     }
 
 

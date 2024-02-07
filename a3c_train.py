@@ -83,16 +83,6 @@ def ensure_shared_grads(model, shared_model):
         shared_param._grad = param.grad
 
 
-def get_image(env, camera):
-    image = env.env.environment.get_camera_data(camera) # TODO env.env or env.environment
-    # TODO write image
-    image = np.expand_dims(image, 0)  # add batch size dimension
-    image = torch.from_numpy(image).float() / 255.0
-    image = image.permute(0, 3, 1, 2)  # reorder for pytorch
-    image = F.interpolate(image, size=(168, 300)) # resize for the model TODO look into getting different camera resolutions
-    return image
-
-
 def get_instruction_idx(instruction, word_to_idx):
     instruction_idx = []
     for word in instruction.split(" "):
@@ -127,7 +117,7 @@ def train(rank, args, shared_model, config_dict):
         os.path.join(os.getcwd(), "xml_debug_files")
     )
 
-    env.reset()
+    #env.reset()
 
     model = A3C_LSTM_GA(args)
 
@@ -146,6 +136,9 @@ def train(rank, args, shared_model, config_dict):
 
     # TODO here is where the a3c implementation gets the image and instruction from the environment
     image, _ = env.reset()
+    image = torch.from_numpy(image).float() # TODO check why this is necessary
+    # print image shape for debug
+    print("image shape: ", image.shape)
 
     # The instruction is the infoJsons file name # TODO this might change later
     # TODO figure out a way to get current instruction with each reset
@@ -181,6 +174,13 @@ def train(rank, args, shared_model, config_dict):
             episode_length += 1
             tx = Variable(torch.from_numpy(np.array([episode_length])).long())
 
+            # print the types of image, instruction_idx, tx, hx, cx
+            print("image: ", type(image))
+            print("instruction_idx: ", type(instruction_idx))
+            print("tx: ", type(tx))
+            print("hx: ", type(hx))
+            print("cx: ", type(cx))
+
             value, logit, (hx, cx) = model(
                 (Variable(image), Variable(instruction_idx), (tx, hx, cx))
             )
@@ -193,12 +193,14 @@ def train(rank, args, shared_model, config_dict):
             log_prob = log_prob.gather(1, Variable(action))
 
             image, reward, termination, truncation, _ = env.step(action) # TODO this is incorrect
+            image = torch.from_numpy(image).float()
 
             done = termination or truncation
             done = done or episode_length >= args.max_episode_length # TODO check if this is necessary
 
             if done:
                 image, _, _, _ = env.reset()
+                image = torch.from_numpy(image).float()
                 # TODO: get the current instruction
                 instruction = config_dict["infoJson"].split("/")[-1].split(".")[0].replace("_", " ")
                 instruction_idx = get_instruction_idx(instruction, word_to_idx)
