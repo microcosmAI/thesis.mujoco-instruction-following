@@ -92,12 +92,13 @@ def get_instruction_idx(instruction, word_to_idx):
     return instruction_idx
 
 def map_discrete_to_continuous(action):
+    factor = 0.1
     if action == 0:  # turn_left
-        return np.array([0, 0, 0, 0, 1, 0])
+        return (np.array([0]), np.array([1*factor]))
     elif action == 1:  # turn_right
-        return np.array([0, 0, 0, 0, -1, 0])
+        return np.array([0]), np.array([-1*factor])
     elif action == 2:  # move_forward
-        return np.array([1, 0, 0, 0, 0, 0])
+        return np.array([1*factor]), np.array([0])
     else:
         raise ValueError("Invalid action")
 
@@ -137,8 +138,6 @@ def train(rank, args, shared_model, config_dict):
     # TODO here is where the a3c implementation gets the image and instruction from the environment
     image, _ = env.reset()
     image = torch.from_numpy(image).float() # TODO check why this is necessary
-    # print image shape for debug
-    print("image shape: ", image.shape)
 
     # The instruction is the infoJsons file name # TODO this might change later
     # TODO figure out a way to get current instruction with each reset
@@ -174,13 +173,6 @@ def train(rank, args, shared_model, config_dict):
             episode_length += 1
             tx = Variable(torch.from_numpy(np.array([episode_length])).long())
 
-            # print the types of image, instruction_idx, tx, hx, cx
-            print("image: ", type(image))
-            print("instruction_idx: ", type(instruction_idx))
-            print("tx: ", type(tx))
-            print("hx: ", type(hx))
-            print("cx: ", type(cx))
-
             value, logit, (hx, cx) = model(
                 (Variable(image), Variable(instruction_idx), (tx, hx, cx))
             )
@@ -199,7 +191,7 @@ def train(rank, args, shared_model, config_dict):
             done = done or episode_length >= args.max_episode_length # TODO check if this is necessary
 
             if done:
-                image, _, _, _ = env.reset()
+                image, _ = env.reset()
                 image = torch.from_numpy(image).float()
                 # TODO: get the current instruction
                 instruction = config_dict["infoJson"].split("/")[-1].split(".")[0].replace("_", " ")
@@ -233,8 +225,8 @@ def train(rank, args, shared_model, config_dict):
             advantage = R - values[i]
             value_loss = value_loss + 0.5 * advantage.pow(2)
 
-            # Generalized Advantage Estimataion
-            delta_t = rewards[i] + args.gamma * values[i + 1].data - values[i].data
+            # Generalized Advantage Estimation
+            delta_t = torch.tensor(rewards[i]) + args.gamma * values[i + 1].data - values[i].data
             gae = gae * args.gamma * args.tau + delta_t
 
             policy_loss = (
@@ -251,7 +243,7 @@ def train(rank, args, shared_model, config_dict):
             print(
                 " ".join(
                     [
-                        "Training thread: {}".format(rank),
+                         "Training thread: {}".format(rank),
                         "Num iters: {}K".format(num_iters),
                         "Avg policy loss: {}".format(np.mean(p_losses)),
                         "Avg value loss: {}".format(np.mean(v_losses)),
@@ -308,7 +300,6 @@ def main():
     envs = gym.vector.AsyncVectorEnv(
         [make_env(config_dict) for _ in range(num_envs)], context="spawn"
     )
-    # print type of action space
     assert isinstance(
         envs.single_action_space, gym.spaces.Box
     ), "only continuous action space is supported"
