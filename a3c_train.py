@@ -11,8 +11,7 @@ from gymnasium.wrappers.frame_stack import FrameStack
 
 import instruction_processing
 
-from wrappers import ImageWrapper
-
+from wrappers import ObservationWrapper
 # from gymnasium.wrappers import NormalizeObservationV0
 from dynamics import *
 import argparse
@@ -42,7 +41,7 @@ def make_env(config_dict):
         env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
         env = gym.wrappers.NormalizeReward(env)
         env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
-        env = ImageWrapper(env, camera="agent/boxagent_camera")
+        env = ObservationWrapper(env, camera="agent/boxagent_camera")
         env.action_space.seed(1)
         env.observation_space.seed(1)
 

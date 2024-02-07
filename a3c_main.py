@@ -185,11 +185,12 @@ def main():
 
     # Start the training thread(s)
     for rank in range(0, args.num_processes):
-        p = mp.Process(target=train, args=(rank, args, shared_model, config_dict))
-        p.start()
-        processes.append(p)
-    for p in processes:
-        p.join()
+        #p = mp.Process(target=train, args=(rank, args, shared_model, config_dict))
+        #p.start()
+        #processes.append(p)
+        train(rank, args, shared_model, config_dict)
+    #for p in processes:
+        #p.join()
 
 
 if __name__ == "__main__":

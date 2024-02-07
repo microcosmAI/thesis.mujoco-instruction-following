@@ -102,7 +102,7 @@ class A3C_LSTM_GA(torch.nn.Module):
 
         # Gated-Attention
         x_attention = x_attention.unsqueeze(1).unsqueeze(2)
-        x_attention = x_attention.expand(1, 64, 8, 17)
+        x_attention = x_attention.expand_as(x_image_rep)
         assert x_image_rep.size() == x_attention.size()
         x = x_image_rep * x_attention
         x = x.contiguous().view(x.size(0), -1)

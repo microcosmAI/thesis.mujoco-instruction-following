@@ -2,46 +2,42 @@ import gymnasium as gym
 import numpy as np
 import torch
 import torch.nn.functional as F
+import os
+import random
 
 
-class ImageWrapper(gym.Wrapper):
+class ObservationWrapper(gym.Wrapper):
     def __init__(self, env, camera):
         super().__init__(env)
         self.camera = camera
+        self.current_level = 0
+        self.threshold_reward = 100  # set your threshold reward here
+        self.level_directories = sorted(
+            [d for d in os.listdir(".") if os.path.isdir(d)]
+        )
+
         # update observation space to match image size
         image = self.get_image(env, camera)
         self.observation_space = gym.spaces.Box(
             low=0, high=255, shape=image.shape, dtype=np.uint8
         )
 
-    def step(self, action):
-        # TODO check if this is the right way to get the observation or if done is not truncated, terminated
-        _, reward, truncated, terminated, info = self.env.step(
-            action
-        )  # TODO check if this is correct
-        observation = self.get_image(self.env, self.camera)
-        return observation, reward, truncated, terminated, info
+    def get_random_file(self, directory):
+        files = os.listdir(directory)
+        return random.choice(files)
 
-    def reset(self):
-        image = self.get_image(self.env, self.camera)
-        env_observation = list(self.env.reset())
-        observation = [image]
-        observation.extend(env_observation[1:])
-        return tuple(observation)
+    def convert_filename_to_instruction(self, filename):
+        # your function here
+        pass
 
-    """def get_image(self, env, camera):
-        image = env.env.environment.get_camera_data(camera)
-        if len(image.shape) == 3:
-            image = torch.from_numpy(image).float() / 255.0
-            image = image.permute(2, 0, 1)  # reorder for pytorch
-            image = F.interpolate(
-                image.unsqueeze(0), size=(168, 300)
-            )  # resize for the model 
-            image = image.squeeze(0)  # remove batch dimension before returning (gets added back from vector env wrapper)
-        # Debugging
-        print("Image exported from get_image with shape: ", image.shape)
+    def set_current_level(self, level):
+        self.current_level = level
 
-        return image"""
+    def set_current_file(self, file):
+        self.current_file = file
+
+    def set_threshold_reward(self, reward):
+        self.threshold_reward = reward
 
     def get_image(self, env, camera):
         image = env.unwrapped.environment.get_camera_data(camera)
@@ -51,8 +47,29 @@ class ImageWrapper(gym.Wrapper):
         image = torch.from_numpy(image).float() / 255.0
         image = image.permute(0, 3, 1, 2)  # reorder for pytorch
         image = F.interpolate(image, size=(168, 300))  # resize for the model
-        image = image.squeeze(
-            0
-        )  # remove batch dimension before returning (gets added back from vector env wrapper - comment out this line if not using vector env wrapper)
+        # batch dimension gets added back from vector env wrapper - comment out this line if not using vector env wrapper
+        image = image.squeeze(0)
 
         return image
+
+    def step(self, action):
+        _, reward, truncated, terminated, info = self.env.step(
+            action
+        )  # TODO check if this is correct
+        image = self.get_image(self.env, self.camera)
+        instruction = self.convert_filename_to_instruction(self.current_file)
+        observation = (image, instruction)
+        return observation, reward, truncated, terminated, info
+
+    def reset(self):
+        image = self.get_image(self.env, self.camera)
+        env_observation = list(self.env.reset())
+        level_directory = self.level_directories[self.current_level]
+        file = self.get_random_file(level_directory)
+        self.set_current_file(file)
+        instruction = self.convert_filename_to_instruction(file)
+        observation = [(image, instruction)]
+        observation.extend(
+            env_observation[1:]
+        )  # Add the rest of the environment observation
+        return tuple(observation)
