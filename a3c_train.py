@@ -177,7 +177,7 @@ def train(rank, args, shared_model, config_dict):
                 (Variable(image), Variable(instruction_idx), (tx, hx, cx))
             )
             prob = F.softmax(logit, dim=-1)
-            log_prob = F.log_softmax(logit)
+            log_prob = F.log_softmax(logit, dim=-1)
             entropy = -(log_prob * prob).sum(1)
             entropies.append(entropy)
 

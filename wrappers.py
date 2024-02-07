@@ -44,7 +44,7 @@ class ImageWrapper(gym.Wrapper):
         return image"""
 
     def get_image(self, env, camera):
-        image = env.env.environment.get_camera_data(camera)
+        image = env.unwrapped.environment.get_camera_data(camera)
         # TODO write image
         if len(image.shape) == 3:
             image = np.expand_dims(image, 0)  # add batch dimension
