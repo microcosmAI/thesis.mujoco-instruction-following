@@ -185,6 +185,7 @@ def main():
 
     # Start the training thread(s)
     for rank in range(0, args.num_processes):
+        print("Starting training thread", rank)
         #p = mp.Process(target=train, args=(rank, args, shared_model, config_dict))
         #p.start()
         #processes.append(p)

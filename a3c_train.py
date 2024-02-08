@@ -12,6 +12,7 @@ from gymnasium.wrappers.frame_stack import FrameStack
 import instruction_processing
 
 from wrappers import ObservationWrapper
+
 # from gymnasium.wrappers import NormalizeObservationV0
 from dynamics import *
 import argparse
@@ -41,38 +42,18 @@ def make_env(config_dict):
         env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
         env = gym.wrappers.NormalizeReward(env)
         env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
-        env = ObservationWrapper(env, camera="agent/boxagent_camera")
+        env = ObservationWrapper(
+            env,
+            camera="agent/boxagent_camera",
+            curriculum_directory=os.path.join("data", "curriculum"),
+            threshold_reward=0.5,
+        )
         env.action_space.seed(1)
         env.observation_space.seed(1)
 
         return env
 
     return thunk
-
-
-def make_only_env(config_dict):
-    def thunk():
-        env = MuJoCoRL(config_dict=config_dict)
-
-        return env
-
-    return thunk
-
-
-def wrap_env(env, config_dict):
-    env = GymnasiumWrapper(env, config_dict["agents"][0])
-    env = gym.wrappers.RecordEpisodeStatistics(env)
-    env = gym.wrappers.ClipAction(env)
-    env = gym.wrappers.NormalizeObservation(env)
-    env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
-    env = gym.wrappers.NormalizeReward(env)
-    env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
-    env.action_space.seed(1)
-    env.observation_space.seed(1)
-    # wrap in syncvectorenv # NOTE must use syncvectorenv to access individual env functions
-    env = gym.vector.AsyncVectorEnv([lambda: make_only_env(config_dict)()], context="spawn")
-    #env = gym.vector.SyncVectorEnv([lambda: make_only_env(config_dict)()])
-    return env
 
 
 def ensure_shared_grads(model, shared_model):
@@ -82,22 +63,15 @@ def ensure_shared_grads(model, shared_model):
         shared_param._grad = param.grad
 
 
-def get_instruction_idx(instruction, word_to_idx):
-    instruction_idx = []
-    for word in instruction.split(" "):
-        instruction_idx.append(word_to_idx[word])
-    instruction_idx = np.array(instruction_idx)
-    instruction_idx = torch.from_numpy(instruction_idx).view(1, -1)
-    return instruction_idx
 
 def map_discrete_to_continuous(action):
     factor = 0.1
     if action == 0:  # turn_left
-        return (np.array([0]), np.array([1*factor]))
+        return (np.array([0]), np.array([1 * factor]))
     elif action == 1:  # turn_right
-        return np.array([0]), np.array([-1*factor])
+        return (np.array([0]), np.array([-1 * factor]))
     elif action == 2:  # move_forward
-        return np.array([1*factor]), np.array([0])
+        return (np.array([1 * factor]), np.array([0]))
     else:
         raise ValueError("Invalid action")
 
@@ -105,19 +79,16 @@ def map_discrete_to_continuous(action):
 def train(rank, args, shared_model, config_dict):
     torch.manual_seed(args.seed + rank)
 
-    #env = make_only_env(config_dict)()
+    # env = make_only_env(config_dict)()
 
-    #env = wrap_env(env, config_dict)
+    # env = wrap_env(env, config_dict)
 
     # make env as async vector env
-    env = gym.vector.AsyncVectorEnv([make_env(config_dict) for _ in range(1)], context="spawn")
-
-    # get word_to_idx # TODO rename word_to_idx because it is a dumb name
-    word_to_idx = instruction_processing.get_word_to_idx_from_dir(  
-        os.path.join(os.getcwd(), "xml_debug_files")
+    env = gym.vector.AsyncVectorEnv(
+        [make_env(config_dict) for _ in range(1)], context="spawn", shared_memory=False
     )
 
-    #env.reset()
+    print(env.reset())
 
     model = A3C_LSTM_GA(args)
 
@@ -135,14 +106,12 @@ def train(rank, args, shared_model, config_dict):
     v_losses = []
 
     # TODO here is where the a3c implementation gets the image and instruction from the environment
-    image, _ = env.reset()
-    image = torch.from_numpy(image).float() # TODO check why this is necessary
+    image, instruction_idx = env.reset()
+    image = torch.from_numpy(image).float()  # TODO check why this is necessary
 
     # The instruction is the infoJsons file name # TODO this might change later
     # TODO figure out a way to get current instruction with each reset
-    instruction = config_dict["infoJson"].split("/")[-1].split(".")[0].replace("_", " ")
-
-    instruction_idx = get_instruction_idx(instruction, word_to_idx)
+    # instruction = config_dict["infoJson"].split("/")[-1].split(".")[0].replace("_", " ")
 
     done = True
 
@@ -180,24 +149,27 @@ def train(rank, args, shared_model, config_dict):
             entropy = -(log_prob * prob).sum(1)
             entropies.append(entropy)
 
-            action = prob.multinomial(num_samples=1).data # NOTE samples now specified due to new pytorch version
+            action = prob.multinomial(
+                num_samples=1
+            ).data  # NOTE samples now specified due to new pytorch version
             log_prob = log_prob.gather(1, Variable(action))
 
-            image, reward, termination, truncation, _ = env.step(action) # TODO this is incorrect
+            image, reward, termination, truncation, _ = env.step(
+                action
+            )  # TODO this is incorrect
             image = torch.from_numpy(image).float()
 
             done = termination or truncation
-            done = done or episode_length >= args.max_episode_length # TODO check if this is necessary
+            done = (
+                done or episode_length >= args.max_episode_length
+            )  # TODO check if this is necessary
 
             if done:
-                image, _ = env.reset()
+                image, instruction_idx = env.reset()
                 image = torch.from_numpy(image).float()
-                # TODO: get the current instruction
-                instruction = config_dict["infoJson"].split("/")[-1].split(".")[0].replace("_", " ")
-                instruction_idx = get_instruction_idx(instruction, word_to_idx)
 
             # TODO check A3C implementation for what happens here
-            #image = get_image(env=env, camera="agent/boxagent_camera")
+            # image = get_image(env=env, camera="agent/boxagent_camera")
 
             values.append(value)
             log_probs.append(log_prob)
@@ -225,7 +197,11 @@ def train(rank, args, shared_model, config_dict):
             value_loss = value_loss + 0.5 * advantage.pow(2)
 
             # Generalized Advantage Estimation
-            delta_t = torch.tensor(rewards[i]) + args.gamma * values[i + 1].data - values[i].data
+            delta_t = (
+                torch.tensor(rewards[i])
+                + args.gamma * values[i + 1].data
+                - values[i].data
+            )
             gae = gae * args.gamma * args.tau + delta_t
 
             policy_loss = (
@@ -242,7 +218,7 @@ def train(rank, args, shared_model, config_dict):
             print(
                 " ".join(
                     [
-                         "Training thread: {}".format(rank),
+                        "Training thread: {}".format(rank),
                         "Num iters: {}K".format(num_iters),
                         "Avg policy loss: {}".format(np.mean(p_losses)),
                         "Avg value loss: {}".format(np.mean(v_losses)),
@@ -279,7 +255,7 @@ def main():
         os.getcwd(), "xml_debug_files", "advance_to_the_tea_tree.json"
     )
     agents = ["agent/"]
-    num_envs = 2
+    num_envs = 1
 
     config_dict = {
         "xmlPath": xml_file_path,
@@ -308,7 +284,6 @@ def main():
     print("Observation space: ", envs.single_observation_space)
     print("Action space shape: ", envs.single_action_space.shape)
     print("Observation space shape: ", envs.single_observation_space.shape)
-
 
     # set up logging
     logging.basicConfig(
