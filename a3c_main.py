@@ -105,7 +105,7 @@ parser.add_argument('-e', '--evaluate', type=int, default=0,
 parser.add_argument('--dump-location', type=str, default="./saved/", # TODO separate into /logs and /saved_models
                     help='path to dump models and log (default: ./saved/)')
 
-def main():
+if __name__ == "__main__":
     
     args = parser.parse_args()
 
@@ -194,6 +194,5 @@ def main():
         #p.join()
 
 
-if __name__ == "__main__":
-    main()
+
 

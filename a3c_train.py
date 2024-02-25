@@ -84,11 +84,12 @@ def train(rank, args, shared_model, config_dict):
     # env = wrap_env(env, config_dict)
 
     # make env as async vector env
-    env = gym.vector.AsyncVectorEnv(
+    env = gym.experimental.vector.AsyncVectorEnv(
         [make_env(config_dict) for _ in range(1)], context="spawn", shared_memory=False
     )
 
-    print(env.reset())
+    reset_dicts = env.reset()
+    print(reset_dicts)
 
     model = A3C_LSTM_GA(args)
 
@@ -106,8 +107,13 @@ def train(rank, args, shared_model, config_dict):
     v_losses = []
 
     # TODO here is where the a3c implementation gets the image and instruction from the environment
-    image, instruction_idx = env.reset()
+    #image, instruction_idx = env.reset()
+    reset_tuple = env.reset()
+    observation_dict = reset_tuple[0]
+    image = observation_dict['image']
+    instruction_idx = observation_dict['instruction_idx']
     image = torch.from_numpy(image).float()  # TODO check why this is necessary
+    instruction_idx = torch.from_numpy(instruction_idx)
 
     # The instruction is the infoJsons file name # TODO this might change later
     # TODO figure out a way to get current instruction with each reset
@@ -165,7 +171,10 @@ def train(rank, args, shared_model, config_dict):
             )  # TODO check if this is necessary
 
             if done:
-                image, instruction_idx = env.reset()
+                #image, instruction_idx = env.reset()
+                reset_dict = env.reset()
+                image = reset_dict['image']
+                instruction_idx = reset_dict['instruction_idx']
                 image = torch.from_numpy(image).float()
 
             # TODO check A3C implementation for what happens here
@@ -244,8 +253,7 @@ def train(rank, args, shared_model, config_dict):
         ensure_shared_grads(model, shared_model)
         optimizer.step()
 
-
-def main():
+if __name__ == "__main__":
     # set paths and such for the config dict
     # path to folder xml_files from current dir:
     xml_file_path = os.path.join(
@@ -312,5 +320,3 @@ def main():
         processes.append(p)
 
 
-if __name__ == "__main__":
-    main()
