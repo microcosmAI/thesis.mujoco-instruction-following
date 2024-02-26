@@ -199,7 +199,6 @@ def write_prompts(
     size_amount,
     instr_amounts,
     instr_types,
-    
 ):
     """Generates a file in the prompts_file_path directory based on the given parameters
 

@@ -77,7 +77,7 @@ class A3C_LSTM_GA(torch.nn.Module):
 
     def forward(self, inputs):
         x, input_inst, (tx, hx, cx) = inputs
-        input_inst = input_inst.squeeze(0) # TODO why is this necessary?
+        input_inst = input_inst.squeeze(0)  # TODO why is this necessary?
 
         # Get the image representation
         x = F.relu(self.conv1(x))

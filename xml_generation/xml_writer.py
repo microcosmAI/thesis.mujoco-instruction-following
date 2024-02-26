@@ -1,18 +1,3 @@
-# Goal here is to build a yml, call PITA on it, then modify the resulting xml to fit my experiment.
-# This script should only generate a single set of xml files based on the json file it gets.
-
-# The yml should be as follows:
-#   - at least one object of the same type as the target object, but of different color OR at least one object of the same color as the target object, but of different type
-#   - the color choices should be from the colorset pool of rgb values
-#
-# Then, we will change the color of the objects according to how we need them to be:
-#   - iterate over the objects. note: potentially shuffle them, to avoid biases
-#   - the first one of target type is the target object:
-#       - give it the correct color, and rename it TARGET
-#   - all others get a random color such that the conditions are met (see above)
-
-# TODO decide on yml vs yml
-
 import os
 import yaml
 import json

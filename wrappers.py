@@ -8,12 +8,15 @@ import instruction_processing as ip
 
 
 class ObservationWrapper(gym.Wrapper):
-    def __init__(self, env, camera, curriculum_directory, threshold_reward):
+    def __init__(
+        self, env, camera, curriculum_directory, threshold_reward, make_env, config_dict
+    ):
         super().__init__(env)
         self.camera = camera
         self.current_level = 0
-        self.threshold_reward = threshold_reward  # set your threshold reward here
+        self.threshold_reward = threshold_reward  # TODO set this to a reasonable value
         self.curriculum_directory = curriculum_directory
+        self.config_dict = config_dict
         self.max_instr_length = ip.get_max_instruction_length_from_curriculum_dir(
             self.curriculum_directory
         )
@@ -29,24 +32,20 @@ class ObservationWrapper(gym.Wrapper):
         )
 
         # update observation space to match image size
-        image = self.get_image(env, camera)#.flatten()
+        image = self.get_image(env, camera)
 
-        #self.observation_space = gym.spaces.Tuple(
-        #    (
-        #        gym.spaces.Box(
-        #            low=0, high=255, shape=image.shape, dtype=np.float32
-        #        ),  # image
-        #        gym.spaces.Box(
-        #            low=0, high=255, shape=(1,), dtype=np.uint8
-        #        ),  # instruction_idx
-        #        # gym.spaces.Dict({"agent/Reward": gym.spaces.Box(low=-np.inf, high=np.inf, shape=(1,), dtype=np.float32)})  # env_observation
-        #    )
-        #)
+        self.observation_space = gym.spaces.Dict(
+            {
+                "image": gym.spaces.Box(
+                    low=0, high=255, shape=image.shape, dtype=np.float32
+                ),
+                "instruction_idx": gym.spaces.Box(
+                    low=0, high=255, shape=(1, self.max_instr_length), dtype=np.int64
+                ),
+            }
+        )
 
-        self.observation_space = gym.spaces.Dict({
-            'image': gym.spaces.Box(low=0, high=255, shape=image.shape, dtype=np.float32),
-            'instruction_idx': gym.spaces.Box(low=0, high=255, shape=(1, self.max_instr_length), dtype=np.int64),
-        }) 
+        self.make_env = make_env
 
     def get_random_file(self, directory):
         files = os.listdir(directory)
@@ -82,29 +81,37 @@ class ObservationWrapper(gym.Wrapper):
 
         return image
 
-
     def step(self, action):
         _, reward, truncated, terminated, info = self.env.step(action)
         image = self.get_image(self.env, self.camera)
-        observation = {
-            'image': image,
-            'instruction_idx': self.current_instruction_idx
-        }
+        observation = {"image": image, "instruction_idx": self.current_instruction_idx}
         return observation, reward, truncated, terminated, info
 
     def reset(self):
         image = self.get_image(self.env, self.camera).numpy()
         env_observation = self.env.reset()
         info = env_observation[1]
+        
+
+        # TODO check if threshold reward is reached
+        # TODO log stats
+        # TODO check if the level should be changed, update current level if so
+
+        # Set the current level and file
         level_directory = self.level_directories[self.current_level]
         file = self.get_random_file(level_directory)
         self.set_current_file(file)
 
-        observation = {
-            'image': image,
-            'instruction_idx': self.current_instruction_idx,
-        }
+        # Generate a new environment
+        self.config_dict["xmlPath"] = file
+        self.config_dict["infoJson"] = file.replace(".xml", ".json")
+        #self.env = self.make_env(self.config_dict)
 
         print(" ---    reset    --- ")
+
+        observation = {
+            "image": image,
+            "instruction_idx": self.current_instruction_idx,
+        }
 
         return observation, info

@@ -32,7 +32,7 @@ from torch.utils.tensorboard import SummaryWriter
 from progressbar import progressbar
 
 
-def make_env(config_dict):
+"""def make_env(config_dict):
     def thunk():
         env = MuJoCoRL(config_dict=config_dict)
         env = GymnasiumWrapper(env, config_dict["agents"][0])
@@ -47,21 +47,51 @@ def make_env(config_dict):
             camera="agent/boxagent_camera",
             curriculum_directory=os.path.join("data", "curriculum"),
             threshold_reward=0.5,
+            make_env=make_env,
         )
         env.action_space.seed(1)
         env.observation_space.seed(1)
 
         return env
 
-    return thunk
+    return thunk"""
 
+
+def make_base_env(config_dict):
+    env = MuJoCoRL(config_dict=config_dict)
+    env = GymnasiumWrapper(env, config_dict["agents"][0])
+    env = gym.wrappers.RecordEpisodeStatistics(env)
+    env = gym.wrappers.ClipAction(env)
+    env = gym.wrappers.NormalizeObservation(env)
+    env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
+    env = gym.wrappers.NormalizeReward(env)
+    env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
+    env.action_space.seed(1)
+    env.observation_space.seed(1)
+
+    return env
+
+def make_env(config_dict):
+    def thunk():
+        env = make_base_env(config_dict)
+        env = ObservationWrapper(
+            env,
+            camera="agent/boxagent_camera",
+            curriculum_directory=os.path.join("data", "curriculum"),
+            threshold_reward=0.5,
+            make_env=make_base_env,
+            config_dict=config_dict
+        )
+
+        return env
+
+    return thunk
 
 def ensure_shared_grads(model, shared_model):
     for param, shared_param in zip(model.parameters(), shared_model.parameters()):
         if shared_param.grad is not None:
             return
         shared_param._grad = param.grad
-
 
 
 def map_discrete_to_continuous(action):
@@ -106,11 +136,11 @@ def train(rank, args, shared_model, config_dict):
     v_losses = []
 
     # TODO here is where the a3c implementation gets the image and instruction from the environment
-    #image, instruction_idx = env.reset()
+    # image, instruction_idx = env.reset()
     reset_tuple = env.reset()
     observation_dict = reset_tuple[0]
-    image = observation_dict['image']
-    instruction_idx = observation_dict['instruction_idx']
+    image = observation_dict["image"]
+    instruction_idx = observation_dict["instruction_idx"]
     image = torch.from_numpy(image).float()  # TODO check why this is necessary
     instruction_idx = torch.from_numpy(instruction_idx)
 
@@ -164,7 +194,7 @@ def train(rank, args, shared_model, config_dict):
             log_prob = log_prob.gather(1, Variable(action))
 
             observation, reward, truncated, terminated, _ = env.step(action)
-            image = observation['image']
+            image = observation["image"]
             image = torch.from_numpy(image).float()
 
             done = terminated or truncated
@@ -174,8 +204,8 @@ def train(rank, args, shared_model, config_dict):
 
             if done:
                 reset_dict, _ = env.reset()
-                image = reset_dict['image']
-                instruction_idx = reset_dict['instruction_idx']
+                image = reset_dict["image"]
+                instruction_idx = reset_dict["instruction_idx"]
                 image = torch.from_numpy(image).float()
 
             # TODO check A3C implementation for what happens here
@@ -250,7 +280,7 @@ def train(rank, args, shared_model, config_dict):
             v_losses = []
 
         (policy_loss + 0.5 * value_loss).backward()
-        torch.nn.utils.clip_grad_norm(model.parameters(), 40)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 40)
 
         ensure_shared_grads(model, shared_model)
         optimizer.step()
