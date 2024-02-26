@@ -77,13 +77,12 @@ class A3C_LSTM_GA(torch.nn.Module):
 
     def forward(self, inputs):
         x, input_inst, (tx, hx, cx) = inputs
+        input_inst = input_inst.squeeze(0) # TODO why is this necessary?
 
         # Get the image representation
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x_image_rep = F.relu(self.conv3(x))
-
-        # NOTE: input image size, instr size, and image repr. size are confirmed identical to the original code.
 
         # Fixed version (different dimensionality of hx)
         # Get the instruction representation
@@ -92,7 +91,6 @@ class A3C_LSTM_GA(torch.nn.Module):
             word_embedding = self.embedding(input_inst[0, i]).unsqueeze(0)
 
             _, encoder_hidden = self.gru(word_embedding, encoder_hidden)
-        # x_instr_rep = encoder_hidden.view(encoder_hidden.size(1), -1)
         x_instr_rep = encoder_hidden.view(
             -1
         )  # NOTE: Reshaped encoder_hidden to 1D tensor to match the input requirements of linear layers in newer PyTorch versions.

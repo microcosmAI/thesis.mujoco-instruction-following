@@ -89,7 +89,6 @@ def train(rank, args, shared_model, config_dict):
     )
 
     reset_dicts = env.reset()
-    print(reset_dicts)
 
     model = A3C_LSTM_GA(args)
 
@@ -147,6 +146,10 @@ def train(rank, args, shared_model, config_dict):
             episode_length += 1
             tx = Variable(torch.from_numpy(np.array([episode_length])).long())
 
+            # NOTE this seems to be necessary for AsyncVectorEnv
+            if not isinstance(instruction_idx, torch.Tensor):
+                instruction_idx = torch.from_numpy(instruction_idx)
+
             value, logit, (hx, cx) = model(
                 (Variable(image), Variable(instruction_idx), (tx, hx, cx))
             )
@@ -160,19 +163,17 @@ def train(rank, args, shared_model, config_dict):
             ).data  # NOTE samples now specified due to new pytorch version
             log_prob = log_prob.gather(1, Variable(action))
 
-            image, reward, termination, truncation, _ = env.step(
-                action
-            )  # TODO this is incorrect
+            observation, reward, truncated, terminated, _ = env.step(action)
+            image = observation['image']
             image = torch.from_numpy(image).float()
 
-            done = termination or truncation
+            done = terminated or truncated
             done = (
                 done or episode_length >= args.max_episode_length
             )  # TODO check if this is necessary
 
             if done:
-                #image, instruction_idx = env.reset()
-                reset_dict = env.reset()
+                reset_dict, _ = env.reset()
                 image = reset_dict['image']
                 instruction_idx = reset_dict['instruction_idx']
                 image = torch.from_numpy(image).float()
@@ -189,6 +190,7 @@ def train(rank, args, shared_model, config_dict):
         R = torch.zeros(1, 1)
         if not done:
             tx = Variable(torch.from_numpy(np.array([episode_length])).long())
+
             value, _, _ = model(
                 (Variable(image), Variable(instruction_idx), (tx, hx, cx))
             )
@@ -252,71 +254,3 @@ def train(rank, args, shared_model, config_dict):
 
         ensure_shared_grads(model, shared_model)
         optimizer.step()
-
-if __name__ == "__main__":
-    # set paths and such for the config dict
-    # path to folder xml_files from current dir:
-    xml_file_path = os.path.join(
-        os.getcwd(), "xml_debug_files", "advance_to_the_tea_tree.xml"
-    )
-    json_files = os.path.join(
-        os.getcwd(), "xml_debug_files", "advance_to_the_tea_tree.json"
-    )
-    agents = ["agent/"]
-    num_envs = 1
-
-    config_dict = {
-        "xmlPath": xml_file_path,
-        "infoJson": json_files,
-        "agents": agents,
-        "rewardFunctions": [target_reward],  # add collision reward later
-        "doneFunctions": [target_done],
-        "skipFrames": 5,
-        "environmentDynamics": [Reward],
-        "freeJoint": True,
-        "renderMode": False,
-        "maxSteps": 4096 * 16,
-        "agentCameras": True,
-        "tensorboard_writer": None,
-    }
-
-    envs = gym.vector.AsyncVectorEnv(
-        [make_env(config_dict) for _ in range(num_envs)], context="spawn"
-    )
-    assert isinstance(
-        envs.single_action_space, gym.spaces.Box
-    ), "only continuous action space is supported"
-
-    # print action and observation space details and shapes
-    print("Action space: ", envs.single_action_space)
-    print("Observation space: ", envs.single_observation_space)
-    print("Action space shape: ", envs.single_action_space.shape)
-    print("Observation space shape: ", envs.single_observation_space.shape)
-
-    # set up logging
-    logging.basicConfig(
-        filename="a3c.log",
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
-
-    # set up tensorboard
-    writer = SummaryWriter()
-
-    # set up model
-    shared_model = A3C_LSTM_GA(envs.single_observation_space, envs.single_action_space)
-    shared_model.share_memory()
-
-    # set up optimizer
-    optimizer = optim.Adam(shared_model.parameters(), lr=1e-4)
-
-    # set up training
-    processes = []
-    for rank in range(0, 1):
-        p = torch.multiprocessing.Process(
-            target=train, args=(rank, args, shared_model, config_dict)
-        )
-        p.start()
-        processes.append(p)
-
-

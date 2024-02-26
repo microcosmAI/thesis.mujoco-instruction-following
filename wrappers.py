@@ -46,11 +46,7 @@ class ObservationWrapper(gym.Wrapper):
         self.observation_space = gym.spaces.Dict({
             'image': gym.spaces.Box(low=0, high=255, shape=image.shape, dtype=np.float32),
             'instruction_idx': gym.spaces.Box(low=0, high=255, shape=(1, self.max_instr_length), dtype=np.int64),
-            # 'env_observation': gym.spaces.Box(low=-np.inf, high=np.inf, shape=(1,), dtype=np.float32)
-        })
-
-        print("idx space", self.observation_space['instruction_idx']) 
-        print("image space", self.observation_space['image'])  
+        }) 
 
     def get_random_file(self, directory):
         files = os.listdir(directory)
@@ -86,28 +82,6 @@ class ObservationWrapper(gym.Wrapper):
 
         return image
 
-        """
-    def step(self, action):
-        _, reward, truncated, terminated, info = self.env.step(
-            action
-        )  # TODO check if this is correct
-        image = self.get_image(self.env, self.camera)
-        observation = (image, self.current_instruction_idx)
-        return observation, reward, truncated, terminated, info
-
-    def reset(self):
-        # TODO build complete logic into this function
-        image = self.get_image(self.env, self.camera)
-        env_observation = self.env.reset()
-        level_directory = self.level_directories[self.current_level]
-        file = self.get_random_file(level_directory)
-        self.set_current_file(file)
-        # TODO set new stage
-        observation = (
-            image,
-            self.current_instruction_idx,
-        )
-        return observation, env_observation[1]"""
 
     def step(self, action):
         _, reward, truncated, terminated, info = self.env.step(action)
@@ -126,36 +100,11 @@ class ObservationWrapper(gym.Wrapper):
         file = self.get_random_file(level_directory)
         self.set_current_file(file)
 
-        # print the shape of the image:
-        print("image shape", image.shape)
-
-        # dummy image to match the shape of instruction_idx
-        image_cut = torch.randint(low=0, high=256, size=(1,), dtype=torch.uint8)
-
         observation = {
             'image': image,
             'instruction_idx': self.current_instruction_idx,
         }
 
-        # check if the observation types and shape is the same as in the observation space
-        # print the shape of instruction_idx
-        print("instruction idx", self.current_instruction_idx.shape)        
-
-        #observation = {
-        #    # debugging: make equal
-        #    'image': image.flatten(),
-        #    'instruction_idx': self.current_instruction_idx.flatten().numpy(),
-        #}
-
         print(" ---    reset    --- ")
-        print("image shape", image.shape)
-        print("instruction idx", self.current_instruction_idx.shape)
-        print("instruction_idx type", type(self.current_instruction_idx))
-        # print whether instruction idx is uint8 or int64
-        print("instruction_idx dtype", self.current_instruction_idx.dtype)
-        print("env_observation", env_observation)
-        print("observation:", observation)
-        print("info:", info)
-        print(" --- end of reset --- ", "\n")
-        #return observation, env_observation[1]
+
         return observation, info
