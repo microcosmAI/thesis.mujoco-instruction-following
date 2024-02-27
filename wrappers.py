@@ -47,25 +47,25 @@ class ObservationWrapper(gym.Wrapper):
 
         self.make_env = make_env
 
-    def get_random_file(self, directory):
+    def get_random_file(self, directory): # TODO obsolete
         files = os.listdir(directory)
         files = [f for f in files if f.endswith(".xml")]
         return random.choice(files)
 
-    def set_current_level(self, level):
+    def set_current_level(self, level): # TODO obsolete
         self.current_level = level
 
-    def set_current_file(self, file):
+    def set_current_file(self, file): # TODO obsolete
         self.current_file = file
         self.current_instruction = self.convert_filename_to_instruction(file)
         self.current_instruction_idx = ip.get_instruction_idx(
             self.current_instruction, self.word_to_idx, self.max_instr_length
         )
 
-    def set_threshold_reward(self, reward):
+    def set_threshold_reward(self, reward): # TODO obsolete
         self.threshold_reward = reward
 
-    def convert_filename_to_instruction(self, filename):
+    def convert_filename_to_instruction(self, filename): # TODO obsolete?
         return filename.split(".")[0].replace("_", " ")
 
     def get_image(self, env, camera):

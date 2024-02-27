@@ -71,6 +71,7 @@ def make_base_env(config_dict):
 
     return env
 
+
 def make_env(config_dict):
     def thunk():
         env = make_base_env(config_dict)
@@ -80,12 +81,13 @@ def make_env(config_dict):
             curriculum_directory=os.path.join("data", "curriculum"),
             threshold_reward=0.5,
             make_env=make_base_env,
-            config_dict=config_dict
+            config_dict=config_dict,
         )
 
         return env
 
     return thunk
+
 
 def ensure_shared_grads(model, shared_model):
     for param, shared_param in zip(model.parameters(), shared_model.parameters()):
@@ -109,10 +111,6 @@ def map_discrete_to_continuous(action):
 def train(rank, args, shared_model, config_dict):
     torch.manual_seed(args.seed + rank)
 
-    # env = make_only_env(config_dict)()
-
-    # env = wrap_env(env, config_dict)
-
     # make env as async vector env
     env = gym.experimental.vector.AsyncVectorEnv(
         [make_env(config_dict) for _ in range(1)], context="spawn", shared_memory=False
@@ -122,11 +120,19 @@ def train(rank, args, shared_model, config_dict):
 
     model = A3C_LSTM_GA(args)
 
+    # if args.load != "0":
+    #    print(str(rank) + " Loading model ... " + args.load)
+    #    model.load_state_dict(
+    #        torch.load(args.load, map_location=lambda storage, loc: storage)
+    #    )
+
     if args.load != "0":
         print(str(rank) + " Loading model ... " + args.load)
-        model.load_state_dict(
-            torch.load(args.load, map_location=lambda storage, loc: storage)
-        )
+        checkpoint = torch.load(args.load)
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        num_iters = checkpoint["num_iters"]
+        print("Checkpoint loaded - ", num_iters, "K iters")
 
     model.train()
 
@@ -284,3 +290,62 @@ def train(rank, args, shared_model, config_dict):
 
         ensure_shared_grads(model, shared_model)
         optimizer.step()
+
+        if num_iters % 5 == 0:
+            # Save model and optimizer state
+            torch.save(
+                {
+                    "model_state_dict": model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "num_iters": num_iters,
+                },
+                "checkpoint.pth",
+            )
+            print("Checkpoint saved - ", len(p_losses) / 1000, "K steps")
+
+
+def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict):
+    # TODO pull from the curriculum all relevant information
+    threshold_reward = 0.5  # TODO set this to a reasonable value
+    level_dir_paths = sorted(
+        [
+            os.path.join(curriculum_dir_path, d)
+            for d in os.listdir(curriculum_dir_path)
+            if os.path.isdir(os.path.join(curriculum_dir_path, d))
+        ]
+    )
+    current_reward = 0
+
+    # curriculum loop # TODO actually make it increase levels
+    for current_level in progressbar(range(len(level_dir_paths))):
+        while current_reward < threshold_reward:
+            # pull all xml files from the current level directory
+            current_level_dir_path = level_dir_paths[current_level]
+
+            current_file_paths = [
+                os.path.join(curriculum_dir_path, current_level_dir_path, file)
+                for file in os.listdir(current_level_dir_path)
+                if file.endswith(".xml")
+            ]
+
+            print(
+                "Training on level ", current_level, "with files:", current_file_paths
+            )  # debugging
+
+            # Generate a new environment
+            config_dict["xmlPath"] = current_file_paths
+
+            # TODO return current_reward from train
+            train(rank, args, shared_model, config_dict)
+
+    pass
+
+
+def get_random_file(directory):
+    files = os.listdir(directory)
+    files = [f for f in files if f.endswith(".xml")]
+    return random.choice(files)
+
+
+def convert_filename_to_instruction(filename):
+    return filename.split(".")[0].replace("_", " ")
