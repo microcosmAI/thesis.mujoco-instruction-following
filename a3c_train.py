@@ -108,15 +108,14 @@ def map_discrete_to_continuous(action):
         raise ValueError("Invalid action")
 
 
-def train(rank, args, shared_model, config_dict):
+def train(rank, args, shared_model, config_dict, writer):
     torch.manual_seed(args.seed + rank)
-
     # make env as async vector env
     env = gym.experimental.vector.AsyncVectorEnv(
         [make_env(config_dict) for _ in range(1)], context="spawn", shared_memory=False
     )
 
-    reset_dicts = env.reset()
+    _ = env.reset()
 
     model = A3C_LSTM_GA(args)
 
@@ -141,25 +140,19 @@ def train(rank, args, shared_model, config_dict):
     p_losses = []
     v_losses = []
 
-    # TODO here is where the a3c implementation gets the image and instruction from the environment
-    # image, instruction_idx = env.reset()
-    reset_tuple = env.reset()
-    observation_dict = reset_tuple[0]
+    observation_dict, _ = env.reset()
     image = observation_dict["image"]
     instruction_idx = observation_dict["instruction_idx"]
-    image = torch.from_numpy(image).float()  # TODO check why this is necessary
-    instruction_idx = torch.from_numpy(instruction_idx)
 
-    # The instruction is the infoJsons file name # TODO this might change later
-    # TODO figure out a way to get current instruction with each reset
-    # instruction = config_dict["infoJson"].split("/")[-1].split(".")[0].replace("_", " ")
+    image = torch.from_numpy(image).float()
+    instruction_idx = torch.from_numpy(instruction_idx)
 
     done = True
 
     episode_length = 0
     num_iters = 0
-
     img_nr = 0
+
     while True:
         # Sync with the shared model
         model.load_state_dict(shared_model.state_dict())
@@ -176,15 +169,11 @@ def train(rank, args, shared_model, config_dict):
         log_probs = []
         rewards = []
         entropies = []
+        episode_lengths = []  # NOTE added
 
         for step in range(args.num_steps):
-
             episode_length += 1
             tx = Variable(torch.from_numpy(np.array([episode_length])).long())
-
-            # NOTE this seems to be necessary for AsyncVectorEnv
-            if not isinstance(instruction_idx, torch.Tensor):
-                instruction_idx = torch.from_numpy(instruction_idx)
 
             value, logit, (hx, cx) = model(
                 (Variable(image), Variable(instruction_idx), (tx, hx, cx))
@@ -212,10 +201,11 @@ def train(rank, args, shared_model, config_dict):
                 reset_dict, _ = env.reset()
                 image = reset_dict["image"]
                 instruction_idx = reset_dict["instruction_idx"]
+                
                 image = torch.from_numpy(image).float()
+                instruction_idx = torch.from_numpy(instruction_idx)
 
-            # TODO check A3C implementation for what happens here
-            # image = get_image(env=env, camera="agent/boxagent_camera")
+                episode_lengths.append(episode_length)
 
             values.append(value)
             log_probs.append(log_prob)
@@ -223,6 +213,7 @@ def train(rank, args, shared_model, config_dict):
 
             if done:
                 break
+
         R = torch.zeros(1, 1)
         if not done:
             tx = Variable(torch.from_numpy(np.array([episode_length])).long())
@@ -291,17 +282,29 @@ def train(rank, args, shared_model, config_dict):
         ensure_shared_grads(model, shared_model)
         optimizer.step()
 
-        if num_iters % 5 == 0:
+        log_interval = 100
+        if len(p_losses) % log_interval == 0:
             # Save model and optimizer state
-            torch.save(
-                {
-                    "model_state_dict": model.state_dict(),
-                    "optimizer_state_dict": optimizer.state_dict(),
-                    "num_iters": num_iters,
-                },
-                "checkpoint.pth",
-            )
+            # torch.save(
+            #    {
+            #        "model_state_dict": model.state_dict(),
+            #        "optimizer_state_dict": optimizer.state_dict(),
+            #        "num_iters": num_iters,
+            #    },
+            #    "checkpoint.pth",
+            # )
             print("Checkpoint saved - ", len(p_losses) / 1000, "K steps")
+
+            total_steps = len(p_losses) + num_iters*1000
+
+            median_reward = np.median(rewards[-log_interval:])
+            median_episode_length = np.median(episode_lengths[-log_interval:])
+
+            writer.add_scalar("Median Reward", median_reward, total_steps)
+            writer.add_scalar(
+                "Median Episode Length", median_episode_length, total_steps
+            )
+            writer.flush()
 
 
 def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict):
@@ -315,28 +318,31 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict)
         ]
     )
     current_reward = 0
+    current_level = 0
 
     # curriculum loop # TODO actually make it increase levels
-    for current_level in progressbar(range(len(level_dir_paths))):
-        while current_reward < threshold_reward:
+    #for current_level in progressbar(range(len(level_dir_paths))):
+    #    while current_reward < threshold_reward:
             # pull all xml files from the current level directory
-            current_level_dir_path = level_dir_paths[current_level]
+    current_level_dir_path = level_dir_paths[current_level]
 
-            current_file_paths = [
-                os.path.join(curriculum_dir_path, current_level_dir_path, file)
-                for file in os.listdir(current_level_dir_path)
-                if file.endswith(".xml")
-            ]
+    current_file_paths = [
+        os.path.join(curriculum_dir_path, current_level_dir_path, file)
+        for file in os.listdir(current_level_dir_path)
+        if file.endswith(".xml")
+    ]
 
-            print(
-                "Training on level ", current_level, "with files:", current_file_paths
-            )  # debugging
+    print(
+        "Training on level ", current_level, "with files:", current_file_paths
+    )  # debugging
 
-            # Generate a new environment
-            config_dict["xmlPath"] = current_file_paths
+    # Generate a new environment
+    config_dict["xmlPath"] = current_file_paths
 
-            # TODO return current_reward from train
-            train(rank, args, shared_model, config_dict)
+    # TODO return current_reward from train
+    writer = SummaryWriter()
+    train(rank, args, shared_model, config_dict, writer)
+    writer.close()
 
     pass
 

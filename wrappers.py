@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import os
 import random
 import instruction_processing as ip
+import cv2
 
 
 class ObservationWrapper(gym.Wrapper):
@@ -13,6 +14,7 @@ class ObservationWrapper(gym.Wrapper):
     ):
         super().__init__(env)
         self.camera = camera
+        self.image_step = 0
         self.current_level = 0
         self.threshold_reward = threshold_reward  # TODO set this to a reasonable value
         self.curriculum_directory = curriculum_directory
@@ -47,25 +49,13 @@ class ObservationWrapper(gym.Wrapper):
 
         self.make_env = make_env
 
-    def get_random_file(self, directory): # TODO obsolete
-        files = os.listdir(directory)
-        files = [f for f in files if f.endswith(".xml")]
-        return random.choice(files)
+    #def get_random_file(self, directory):  # TODO obsolete
+    #    files = os.listdir(directory)
+    #    files = [f for f in files if f.endswith(".xml")]
+    #    return random.choice(files)
 
-    def set_current_level(self, level): # TODO obsolete
-        self.current_level = level
-
-    def set_current_file(self, file): # TODO obsolete
-        self.current_file = file
-        self.current_instruction = self.convert_filename_to_instruction(file)
-        self.current_instruction_idx = ip.get_instruction_idx(
-            self.current_instruction, self.word_to_idx, self.max_instr_length
-        )
-
-    def set_threshold_reward(self, reward): # TODO obsolete
-        self.threshold_reward = reward
-
-    def convert_filename_to_instruction(self, filename): # TODO obsolete?
+    def convert_filename_to_instruction(self, filename):
+        filename = filename.split("/")[-1]
         return filename.split(".")[0].replace("_", " ")
 
     def get_image(self, env, camera):
@@ -81,33 +71,50 @@ class ObservationWrapper(gym.Wrapper):
 
         return image
 
+    def set_instruction_idx(self, env):
+        instruction = self.convert_filename_to_instruction(
+            env.unwrapped.environment.xml_path
+        )
+
+        instruction_idx = []
+        for word in instruction.split(" "):
+            instruction_idx.append(self.word_to_idx[word])
+
+        # Pad the instruction to the maximum instruction length using 0 as special token
+        pad_length = self.max_instr_length - len(instruction_idx)
+        if pad_length > 0:
+            instruction_idx += [0] * pad_length
+        instruction_idx = np.array(instruction_idx)
+        instruction_idx = torch.from_numpy(instruction_idx).view(1, -1)
+        self.current_instruction_idx = instruction_idx
+
     def step(self, action):
         _, reward, truncated, terminated, info = self.env.step(action)
         image = self.get_image(self.env, self.camera)
+
+        # TODO check if I need to set instruction idx here
+
+        # TODO remove image storage
+        self.image_step += 1
+        if self.image_step % 1000 == 0:
+            print("Step:", self.image_step)
+            # save image to ./data/images
+            image_path = os.path.join(
+                os.getcwd(), "data", "images", f"{self.image_step}.png"
+            )
+            img = image.permute(1, 2, 0).numpy()
+            img = (img * 255).astype(np.uint8)
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(image_path, img)
+
         observation = {"image": image, "instruction_idx": self.current_instruction_idx}
         return observation, reward, truncated, terminated, info
 
     def reset(self):
+        self.set_instruction_idx(self.env)
         image = self.get_image(self.env, self.camera).numpy()
         env_observation = self.env.reset()
         info = env_observation[1]
-        
-
-        # TODO check if threshold reward is reached
-        # TODO log stats
-        # TODO check if the level should be changed, update current level if so
-
-        # Set the current level and file
-        level_directory = self.level_directories[self.current_level]
-        file = self.get_random_file(level_directory)
-        self.set_current_file(file)
-
-        # Generate a new environment
-        self.config_dict["xmlPath"] = file
-        self.config_dict["infoJson"] = file.replace(".xml", ".json")
-        #self.env = self.make_env(self.config_dict)
-
-        print(" ---    reset    --- ")
 
         observation = {
             "image": image,

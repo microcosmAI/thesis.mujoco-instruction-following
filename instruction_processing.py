@@ -139,3 +139,7 @@ def get_instruction_idx(instruction, word_to_idx, max_instr_length):
     instruction_idx = np.array(instruction_idx)
     instruction_idx = torch.from_numpy(instruction_idx).view(1, -1)
     return instruction_idx
+
+
+#xml_path
+# median reward / length, use tensorboard to plot
