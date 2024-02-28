@@ -236,7 +236,7 @@ if __name__ == "__main__":
         "maxSteps": 4096 * 16,
         "agentCameras": True,
         "tensorboard_writer": None,
-        "sensorResolution": (300, 168),
+        "sensorResolution": (168, 300),
     }
 
     # Setup logging

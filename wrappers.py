@@ -6,6 +6,7 @@ import os
 import random
 import instruction_processing as ip
 import cv2
+import matplotlib as plt
 
 
 class ObservationWrapper(gym.Wrapper):
@@ -60,12 +61,13 @@ class ObservationWrapper(gym.Wrapper):
 
     def get_image(self, env, camera):
         image = env.unwrapped.environment.get_camera_data(camera)
+        self.write_image(image)
         # TODO write image
         if len(image.shape) == 3:
             image = np.expand_dims(image, 0)  # add batch dimension
         image = torch.from_numpy(image).float() / 255.0
         image = image.permute(0, 3, 1, 2)  # reorder for pytorch
-        image = F.interpolate(image, size=(168, 300))  # resize for the model
+        #image = F.interpolate(image, size=(168, 300))  # resize for the model
         # batch dimension gets added back from vector env wrapper - comment out this line if not using vector env wrapper
         image = image.squeeze(0)
 
@@ -88,25 +90,43 @@ class ObservationWrapper(gym.Wrapper):
         instruction_idx = torch.from_numpy(instruction_idx).view(1, -1)
         self.current_instruction_idx = instruction_idx
 
+
+    def write_image(self, image):   
+        if not os.path.exists(os.path.join(os.getcwd(), "data", "images")):
+            os.makedirs(os.path.join(os.getcwd(), "data", "images"))
+        
+        self.image_step += 1
+        if self.image_step % 200 == 0:
+            image_path = os.path.join(
+                os.getcwd(), "data", "images", f"{self.image_step}.png"
+            )
+            # print all info about the image
+            print(f"Image shape: {image.shape}")
+            print(f"Image type: {type(image)}")
+            print(f"Image dtype: {image.dtype}")
+            print(f"Image min: {image.min()}")
+            print(f"Image max: {image.max()}")
+
+            # print a single line of the image
+            #line = image[:, 0, 0]
+            #print(len(line))
+            #print(line)
+
+            #image = image.permute(1, 0, 2).numpy()
+            #image = (image * 255).astype(np.uint8)
+            #image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+            #plt.imshow(image)
+            #plt.show()
+
+            cv2.imwrite(image_path, image)
+            print(f"Saved image {self.image_step} to {image_path}")
+
     def step(self, action):
         _, reward, truncated, terminated, info = self.env.step(action)
         image = self.get_image(self.env, self.camera)
 
         # TODO check if I need to set instruction idx here
-
-        # TODO remove image storage
-        self.image_step += 1
-        if self.image_step % 1000 == 0:
-            print("Step:", self.image_step)
-            # save image to ./data/images
-            image_path = os.path.join(
-                os.getcwd(), "data", "images", f"{self.image_step}.png"
-            )
-            img = image.permute(1, 2, 0).numpy()
-            img = (img * 255).astype(np.uint8)
-            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-            cv2.imwrite(image_path, img)
-
         observation = {"image": image, "instruction_idx": self.current_instruction_idx}
         return observation, reward, truncated, terminated, info
 
