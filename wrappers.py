@@ -1,13 +1,9 @@
 import gymnasium as gym
 import numpy as np
 import torch
-import torch.nn.functional as F
 import os
-import random
 import instruction_processing as ip
 import cv2
-import matplotlib as plt
-
 
 class ObservationWrapper(gym.Wrapper):
     def __init__(
@@ -50,18 +46,12 @@ class ObservationWrapper(gym.Wrapper):
 
         self.make_env = make_env
 
-    #def get_random_file(self, directory):  # TODO obsolete
-    #    files = os.listdir(directory)
-    #    files = [f for f in files if f.endswith(".xml")]
-    #    return random.choice(files)
-
-    def convert_filename_to_instruction(self, filename): 
+    def convert_filename_to_instruction(self, filename):
         filename = filename.split("/")[-1]
         return filename.split(".")[0].replace("_", " ")
 
     def get_image(self, env, camera):
         image = env.unwrapped.environment.get_camera_data(camera)
-        
 
         # Crop to 168x300
         height, width = image.shape[:2]
@@ -74,18 +64,17 @@ class ObservationWrapper(gym.Wrapper):
 
         image = image[start_row:end_row, start_col:end_col]
 
-        self.write_image(image)
+        self.write_image(image=image, interval=1000)
 
-        # TODO write image
         if len(image.shape) == 3:
             image = np.expand_dims(image, 0)  # add batch dimension
 
         image = torch.from_numpy(image).float() / 255.0
         image = image.permute(0, 3, 1, 2)  # reorder for pytorch
-        #image = F.interpolate(image, size=(168, 300))  # resize for the model
-        # batch dimension gets added back from vector env wrapper - comment out this line if not using vector env wrapper
 
+        # batch dimension gets added back from vector env wrapper - comment out this line if not using vector env wrapper
         image = image.squeeze(0)
+
         return image
 
     def set_instruction_idx(self, env):
@@ -105,17 +94,17 @@ class ObservationWrapper(gym.Wrapper):
         instruction_idx = torch.from_numpy(instruction_idx).view(1, -1)
         self.current_instruction_idx = instruction_idx
 
-
-    def write_image(self, image):   
+    def write_image(self, image, interval):
         if not os.path.exists(os.path.join(os.getcwd(), "data", "images")):
             os.makedirs(os.path.join(os.getcwd(), "data", "images"))
-        
+
         self.image_step += 1
-        if self.image_step % 1000 == 0:
+        if self.image_step % interval == 0:
             image_path = os.path.join(
                 os.getcwd(), "data", "images", f"{self.image_step}.png"
             )
 
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # convert from BGR to RGB
             cv2.imwrite(image_path, image)
             print(f"Saved image {self.image_step} to {image_path}")
 

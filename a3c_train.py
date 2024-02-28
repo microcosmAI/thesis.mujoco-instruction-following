@@ -32,7 +32,7 @@ from torch.utils.tensorboard import SummaryWriter
 from progressbar import progressbar
 
 
-"""def make_env(config_dict):
+def make_env(config_dict):
     def thunk():
         env = MuJoCoRL(config_dict=config_dict)
         env = GymnasiumWrapper(env, config_dict["agents"][0])
@@ -48,16 +48,17 @@ from progressbar import progressbar
             curriculum_directory=os.path.join("data", "curriculum"),
             threshold_reward=0.5,
             make_env=make_env,
+            config_dict=config_dict,
         )
         env.action_space.seed(1)
         env.observation_space.seed(1)
 
         return env
 
-    return thunk"""
+    return thunk
 
 
-def make_base_env(config_dict):
+"""def make_base_env(config_dict):
     env = MuJoCoRL(config_dict=config_dict)
     env = GymnasiumWrapper(env, config_dict["agents"][0])
     env = gym.wrappers.RecordEpisodeStatistics(env)
@@ -86,7 +87,7 @@ def make_env(config_dict):
 
         return env
 
-    return thunk
+    return thunk"""
 
 
 def ensure_shared_grads(model, shared_model):
@@ -142,9 +143,6 @@ def train(rank, args, shared_model, config_dict, writer):
 
     observation_dict, _ = env.reset()
     image = observation_dict["image"]
-    print("Image shape: ", image.shape)
-    #image = image[:, :, 66:234, :]
-    print("Image shape: ", image.shape)
     instruction_idx = observation_dict["instruction_idx"]
 
     image = torch.from_numpy(image).float()
@@ -193,7 +191,6 @@ def train(rank, args, shared_model, config_dict, writer):
 
             observation, reward, truncated, terminated, _ = env.step(action)
             image = observation["image"]
-            #image = image[:, :, 66:234, :]
             image = torch.from_numpy(image).float()
 
             done = terminated or truncated
@@ -204,7 +201,6 @@ def train(rank, args, shared_model, config_dict, writer):
             if done:
                 reset_dict, _ = env.reset()
                 image = reset_dict["image"]
-                #image = image[:, :, 66:234, :]
                 instruction_idx = reset_dict["instruction_idx"]
                 
                 image = torch.from_numpy(image).float()
