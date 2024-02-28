@@ -1,11 +1,11 @@
-from MuJoCo_Gym.mujoco_rl import MuJoCoRL
-import numpy as np
-import cv2
+#from MuJoCo_Gym.mujoco_rl import MuJoCoRL
+#import numpy as np
+#import cv2
 import copy
-from sklearn.metrics import mean_squared_error
-from autoencoder import Autoencoder
+#from sklearn.metrics import mean_squared_error
+#from autoencoder import Autoencoder
 import re
-import os
+#import os
 
 """class Image:
     # TODO pass through the image without autoencoder for now, later compare with autoencoder
@@ -69,6 +69,7 @@ class Reward:
             self.environment.data_store["targets"] = self.environment.filter_by_tag(
                 "Target"
             )
+            
 
         if not "target_geoms" in self.environment.data_store.keys():
             self.environment.data_store["target_geoms"] = []
@@ -82,6 +83,9 @@ class Reward:
                 target_geom_name = prefix + "/" + suffix
 
                 self.environment.data_store["target_geoms"].append(target_geom_name)
+
+        # print the color of the target geoms
+        
 
 
 

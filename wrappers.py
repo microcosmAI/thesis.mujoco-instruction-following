@@ -82,6 +82,8 @@ class ObservationWrapper(gym.Wrapper):
             env.unwrapped.environment.xml_path
         )
 
+        print("current instruction:", instruction)  
+        
         instruction_idx = []
         for word in instruction.split(" "):
             instruction_idx.append(self.word_to_idx[word])

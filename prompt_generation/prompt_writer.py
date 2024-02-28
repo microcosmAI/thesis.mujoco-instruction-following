@@ -172,7 +172,11 @@ def generate_prompt_dicts(color_list, shape_list, instruction_list, size_list):
     # Generate prompt string for each dict, add prompt string to list
     for entry in prompt_list:
         instruction_value = entry["instruction"]["value"]
-        size_value = entry["size"]
+
+        size_value = ""
+        if entry["size"]:
+            size_value = entry["size"]["name"]
+
         color_name = entry["color"]["name"]
         shape_model = entry["shape"]["model"]
 

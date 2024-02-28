@@ -169,6 +169,12 @@ def main():
     xml_object_dir_path = os.path.join(os.getcwd(), "data", "objects")
     instr_file_path = os.path.join(os.getcwd(), "data", "prompt_data", "instructions.txt")
     instr_types = ["approach", "avoid"]
+    size_modifiers = [
+        {"name": "large", "factor": 2},
+        {"name": "small", "factor": 0.5},
+        {"name": "huge", "factor": 4},
+        {"name": "tiny", "factor": 0.25}
+    ]
 
 
     level_amount = 3
@@ -208,7 +214,7 @@ def main():
             shape_amount=params["shape_amounts"][level_number],
             size_amount=params["size_amounts"][level_number],
             instr_amounts=instr_amounts,
-            size_modifier_list = ["large", "small", "huge", "tiny"],
+            size_modifier_list=size_modifiers,
             instr_types=instr_types, # TODO move to params
         )
 
@@ -220,6 +226,8 @@ def main():
             xml_object_dir_path=xml_object_dir_path,
             colorset_file_path=colorset_file_path,
             color_amount=params["color_amounts"][level_number],
+            size_modifier_list=size_modifiers,
+            size_amount=params["size_amounts"][level_number],
         )
 
     #generate_curriculum(curriculum_dir_path, params)
