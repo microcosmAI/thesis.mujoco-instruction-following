@@ -142,6 +142,9 @@ def train(rank, args, shared_model, config_dict, writer):
 
     observation_dict, _ = env.reset()
     image = observation_dict["image"]
+    print("Image shape: ", image.shape)
+    #image = image[:, :, 66:234, :]
+    print("Image shape: ", image.shape)
     instruction_idx = observation_dict["instruction_idx"]
 
     image = torch.from_numpy(image).float()
@@ -190,6 +193,7 @@ def train(rank, args, shared_model, config_dict, writer):
 
             observation, reward, truncated, terminated, _ = env.step(action)
             image = observation["image"]
+            #image = image[:, :, 66:234, :]
             image = torch.from_numpy(image).float()
 
             done = terminated or truncated
@@ -200,6 +204,7 @@ def train(rank, args, shared_model, config_dict, writer):
             if done:
                 reset_dict, _ = env.reset()
                 image = reset_dict["image"]
+                #image = image[:, :, 66:234, :]
                 instruction_idx = reset_dict["instruction_idx"]
                 
                 image = torch.from_numpy(image).float()

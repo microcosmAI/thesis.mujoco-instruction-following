@@ -55,22 +55,37 @@ class ObservationWrapper(gym.Wrapper):
     #    files = [f for f in files if f.endswith(".xml")]
     #    return random.choice(files)
 
-    def convert_filename_to_instruction(self, filename):
+    def convert_filename_to_instruction(self, filename): 
         filename = filename.split("/")[-1]
         return filename.split(".")[0].replace("_", " ")
 
     def get_image(self, env, camera):
         image = env.unwrapped.environment.get_camera_data(camera)
+        
+
+        # Crop to 168x300
+        height, width = image.shape[:2]
+        new_height, new_width = 168, 300
+
+        start_row = int((height - new_height) / 2)
+        start_col = int((width - new_width) / 2)
+        end_row = start_row + new_height
+        end_col = start_col + new_width
+
+        image = image[start_row:end_row, start_col:end_col]
+
         self.write_image(image)
+
         # TODO write image
         if len(image.shape) == 3:
             image = np.expand_dims(image, 0)  # add batch dimension
+
         image = torch.from_numpy(image).float() / 255.0
         image = image.permute(0, 3, 1, 2)  # reorder for pytorch
         #image = F.interpolate(image, size=(168, 300))  # resize for the model
         # batch dimension gets added back from vector env wrapper - comment out this line if not using vector env wrapper
-        image = image.squeeze(0)
 
+        image = image.squeeze(0)
         return image
 
     def set_instruction_idx(self, env):
@@ -96,28 +111,10 @@ class ObservationWrapper(gym.Wrapper):
             os.makedirs(os.path.join(os.getcwd(), "data", "images"))
         
         self.image_step += 1
-        if self.image_step % 200 == 0:
+        if self.image_step % 1000 == 0:
             image_path = os.path.join(
                 os.getcwd(), "data", "images", f"{self.image_step}.png"
             )
-            # print all info about the image
-            print(f"Image shape: {image.shape}")
-            print(f"Image type: {type(image)}")
-            print(f"Image dtype: {image.dtype}")
-            print(f"Image min: {image.min()}")
-            print(f"Image max: {image.max()}")
-
-            # print a single line of the image
-            #line = image[:, 0, 0]
-            #print(len(line))
-            #print(line)
-
-            #image = image.permute(1, 0, 2).numpy()
-            #image = (image * 255).astype(np.uint8)
-            #image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
-            #plt.imshow(image)
-            #plt.show()
 
             cv2.imwrite(image_path, image)
             print(f"Saved image {self.image_step} to {image_path}")
