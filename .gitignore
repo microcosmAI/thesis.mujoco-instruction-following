@@ -2,3 +2,4 @@
 data/curriculum/*
 !data/curriculum/
 images/
+#runs/
