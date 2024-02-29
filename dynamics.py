@@ -1,11 +1,13 @@
-#from MuJoCo_Gym.mujoco_rl import MuJoCoRL
-#import numpy as np
-#import cv2
+# from MuJoCo_Gym.mujoco_rl import MuJoCoRL
+# import numpy as np
+# import cv2
 import copy
-#from sklearn.metrics import mean_squared_error
-#from autoencoder import Autoencoder
+
+# from sklearn.metrics import mean_squared_error
+# from autoencoder import Autoencoder
 import re
-#import os
+
+# import os
 
 """class Image:
     # TODO pass through the image without autoencoder for now, later compare with autoencoder
@@ -31,7 +33,6 @@ import re
         filepath = os.path.join(os.getcwd(), "debug_images")
         cv2.imwrite(filepath + str(self.index) + ".png", image)
         return 0, result, 0, 0"""
-    
 
 
 class Reward:
@@ -69,26 +70,19 @@ class Reward:
             self.environment.data_store["targets"] = self.environment.filter_by_tag(
                 "Target"
             )
-            
 
         if not "target_geoms" in self.environment.data_store.keys():
             self.environment.data_store["target_geoms"] = []
-            
+
             for target in self.environment.data_store["targets"]:
                 # TODO this is a hack, necessary because of the way the targets are named in the json/xml files
 
-                suffix = re.split('\d', target["name"])[0] + "_geom"
-                prefix = re.split('/', target["name"])[0]
+                suffix = re.split("\d", target["name"])[0] + "_geom"
+                prefix = re.split("/", target["name"])[0]
 
                 target_geom_name = prefix + "/" + suffix
 
                 self.environment.data_store["target_geoms"].append(target_geom_name)
-
-        # print the color of the target geoms
-        
-
-
-
 
         if not "agent" in self.environment.data_store.keys():
             self.environment.data_store["agent"] = self.environment.filter_by_tag(
@@ -177,6 +171,7 @@ def target_done(mujoco_gym, agent):
             return True
         else:
             return False
+
 
 """def border_done(mujoco_gym, agent):
     for border in ["border_geom", "border1_geom", "border2_geom", "border3_geom"]:

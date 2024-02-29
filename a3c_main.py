@@ -209,7 +209,6 @@ if __name__ == "__main__":
     word_to_idx = ip.get_word_to_idx_from_curriculum_dir(
         curriculum_dir_path=curriculum_dir_path
     )
-    print("word_to_idx", word_to_idx)
     args.input_size = len(word_to_idx)
 
     # set paths and such for the config dict

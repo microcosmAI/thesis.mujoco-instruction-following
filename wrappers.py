@@ -81,8 +81,6 @@ class ObservationWrapper(gym.Wrapper):
         instruction = self.convert_filename_to_instruction(
             env.unwrapped.environment.xml_path
         )
-
-        print("current instruction:", instruction)  
         
         instruction_idx = []
         for word in instruction.split(" "):
@@ -101,7 +99,7 @@ class ObservationWrapper(gym.Wrapper):
             os.makedirs(os.path.join(os.getcwd(), "data", "images"))
 
         self.image_step += 1
-        if self.image_step % interval == 0:
+        if (self.image_step-900) % interval == 0:
             image_path = os.path.join(
                 os.getcwd(), "data", "images", f"{self.image_step}.png"
             )
@@ -110,7 +108,27 @@ class ObservationWrapper(gym.Wrapper):
             cv2.imwrite(image_path, image)
             print(f"Saved image {self.image_step} to {image_path}")
 
+    def map_discrete_to_continuous(self, action):
+        # TODO test a non-action
+        factor = 1.0
+        if action == 0:  # action_1
+            return np.array([1.0 * factor, 0.0, 0.0])
+        elif action == 1:  # inverse of action_1
+            return np.array([-1.0 * factor, 0.0, 0.0])
+        elif action == 2:  # action_2
+            return np.array([0.0, 1.0 * factor, 0.0])
+        elif action == 3:  # inverse of action_2
+            return np.array([0.0, -1.0 * factor, 0.0])
+        elif action == 4:  # action_3
+            return np.array([0.0, 0.0, 1.0 * factor])
+        elif action == 5:  # inverse of action_3
+            return np.array([0.0, 0.0, -1.0 * factor])
+        else:
+            raise ValueError("Invalid action")
+
     def step(self, action):
+        # translate action
+        action = self.map_discrete_to_continuous(action)
         _, reward, truncated, terminated, info = self.env.step(action)
         image = self.get_image(self.env, self.camera)
 

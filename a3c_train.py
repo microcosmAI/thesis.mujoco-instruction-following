@@ -51,43 +51,12 @@ def make_env(config_dict):
             config_dict=config_dict,
         )
         env.action_space.seed(1)
+        print("action space", env.action_space)
         env.observation_space.seed(1)
 
         return env
 
     return thunk
-
-
-"""def make_base_env(config_dict):
-    env = MuJoCoRL(config_dict=config_dict)
-    env = GymnasiumWrapper(env, config_dict["agents"][0])
-    env = gym.wrappers.RecordEpisodeStatistics(env)
-    env = gym.wrappers.ClipAction(env)
-    env = gym.wrappers.NormalizeObservation(env)
-    env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
-    env = gym.wrappers.NormalizeReward(env)
-    env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
-    env.action_space.seed(1)
-    env.observation_space.seed(1)
-
-    return env
-
-
-def make_env(config_dict):
-    def thunk():
-        env = make_base_env(config_dict)
-        env = ObservationWrapper(
-            env,
-            camera="agent/boxagent_camera",
-            curriculum_directory=os.path.join("data", "curriculum"),
-            threshold_reward=0.5,
-            make_env=make_base_env,
-            config_dict=config_dict,
-        )
-
-        return env
-
-    return thunk"""
 
 
 def ensure_shared_grads(model, shared_model):
@@ -97,24 +66,14 @@ def ensure_shared_grads(model, shared_model):
         shared_param._grad = param.grad
 
 
-def map_discrete_to_continuous(action):
-    factor = 0.1
-    if action == 0:  # turn_left
-        return (np.array([0]), np.array([1 * factor]))
-    elif action == 1:  # turn_right
-        return (np.array([0]), np.array([-1 * factor]))
-    elif action == 2:  # move_forward
-        return (np.array([1 * factor]), np.array([0]))
-    else:
-        raise ValueError("Invalid action")
-
-
 def train(rank, args, shared_model, config_dict, writer):
     torch.manual_seed(args.seed + rank)
     # make env as async vector env
     env = gym.experimental.vector.AsyncVectorEnv(
         [make_env(config_dict) for _ in range(1)], context="spawn", shared_memory=False
     )
+
+    print(env.single_action_space.shape)
 
     _ = env.reset()
 
@@ -338,10 +297,11 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict)
     )  # debugging
 
     # Generate a new environment
-    config_dict["xmlPath"] = current_file_paths
+    #config_dict["xmlPath"] = current_file_paths
 
     # TODO return current_reward from train
     writer = SummaryWriter()
+    #config_dict["tensorboard_writer"] = writer
     train(rank, args, shared_model, config_dict, writer)
     writer.close()
 
