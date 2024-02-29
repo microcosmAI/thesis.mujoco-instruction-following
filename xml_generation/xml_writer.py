@@ -6,6 +6,7 @@ from pita_algorithm.pita import PITA
 import re
 import random
 
+
 def write_yml_entry(entry, yml_output_dir_path, object_pool):
     """Write a single yml file based on one entry in the json file
 
@@ -134,7 +135,7 @@ def write_xml_entry(
     colorset_file_path,
     color_amount,
     size_modifier_list,
-    size_amount
+    size_amount,
 ):
     """Generates a single xml file based on a single yml file, using details from the json file containing the prompts"""
 
@@ -160,7 +161,14 @@ def write_xml_entry(
     )
 
     # TODO change the colors of the objects in the xml file according to my experiment
-    modify_xml(xml_file_path, entry, colorset_file_path, color_amount, size_modifier_list, size_amount)
+    modify_xml(
+        xml_file_path,
+        entry,
+        colorset_file_path,
+        color_amount,
+        size_modifier_list,
+        size_amount,
+    )
 
 
 def get_object_pool(data):
@@ -183,7 +191,14 @@ def get_object_pool(data):
     return object_pool
 
 
-def modify_xml(xml_file_path, entry, colorset_file_path, color_amount, size_modifier_list, size_amount):
+def modify_xml(
+    xml_file_path,
+    entry,
+    colorset_file_path,
+    color_amount,
+    size_modifier_list,
+    size_amount,
+):
     """
     Modifies the xml file at xml_file_path based on the entry in the json file.
 
@@ -208,12 +223,11 @@ def modify_xml(xml_file_path, entry, colorset_file_path, color_amount, size_modi
     if "size" in entry:
         hasSize = True
         sizes = size_modifier_list[:size_amount]
-        target_size = entry["size"] # format: {"name": "large", "factor": 2}
+        target_size = entry["size"]  # format: {"name": "large", "factor": 2}
         target_size_factor = 1
         if target_size:
             target_size_factor = target_size["factor"]
-        target_size_dimensions = [] # concrete values for the size
-    
+        target_size_dimensions = []  # concrete values for the size
 
     json_file_path = xml_file_path.replace(".xml", ".json")
 
@@ -223,13 +237,12 @@ def modify_xml(xml_file_path, entry, colorset_file_path, color_amount, size_modi
 
     with open(json_file_path, "r") as f:
         json_data = json.load(f)
-        print("json_data:", json_data)
 
     with open(xml_file_path, "r") as f:
         xml_data = f.readlines()
 
     colorset = colorset[:color_amount]
-    #colorset = [color for color in colorset if color != target_color]
+    # colorset = [color for color in colorset if color != target_color]
 
     target_positions = {}  # format: {position: color} (position is a tuple)
     distractor_positions = {}
@@ -244,21 +257,30 @@ def modify_xml(xml_file_path, entry, colorset_file_path, color_amount, size_modi
         if key == "environment":
             keys_to_delete = []
             for k, v in json_data[key]["objects"].items():
+
                 if "Target" in v["tags"]:
                     v["color"] = target_color["rgb"]
                     target_positions[tuple(v["position"])] = v["color"]
                     if hasSize:
                         v["size"] = [x * target_size_factor for x in v["size"]]
                         target_size_dimensions = v["size"]
+
                 if "Distractor" in v["tags"]:
                     # Assign random values, until they are different from the target values
                     while True:
                         v["color"] = np.random.choice(colorset)["code"]
                         if hasSize:
-                            v["size"] = random.choice(sizes)
-                        if (v["color"], v["class"], v["size"]) != (target_color["rgb"], target_class, target_size):
+                            new_size = random.choice(sizes)
+                            v["size"] = [x * new_size["factor"] for x in v["size"]]
+                        if (v["color"], v["class"], v["size"]) != (
+                            target_color["rgb"],
+                            target_class,
+                            target_size_dimensions,
+                        ):
                             break
+
                 distractor_positions[tuple(v["position"])] = v
+
                 if "Placeholder" in v["tags"]:
                     placeholder_positions.append(v["position"])
                     keys_to_delete.append(k)
@@ -270,21 +292,30 @@ def modify_xml(xml_file_path, entry, colorset_file_path, color_amount, size_modi
             for area_name in json_data[key]:
                 keys_to_delete = []
                 for k, v in json_data[key][area_name]["objects"].items():
+
                     if "Target" in v["tags"]:
                         v["color"] = target_color["rgb"]
                         target_positions[tuple(v["position"])] = v["color"]
                         if hasSize:
                             v["size"] = [x * target_size_factor for x in v["size"]]
                             target_size_dimensions = v["size"]
+
                     if "Distractor" in v["tags"]:
                         # Assign random values, until they are different from the target values
                         while True:
                             v["color"] = np.random.choice(colorset)["code"]
                             if hasSize:
-                                v["size"] = random.choice(sizes)
-                            if (v["color"], v["class"], v["size"]) != (target_color["rgb"], target_class, target_size):
+                                new_size = random.choice(sizes)
+                                v["size"] = [x * new_size["factor"] for x in v["size"]]
+                            if (v["color"], v["class"], v["size"]) != (
+                                target_color["rgb"],
+                                target_class,
+                                target_size_dimensions,
+                            ):
                                 break
+
                     distractor_positions[tuple(v["position"])] = v
+
                     if "Placeholder" in v["tags"]:
                         keys_to_delete.append(k)
                         placeholder_positions.append(v["position"])
@@ -345,7 +376,6 @@ def modify_xml(xml_file_path, entry, colorset_file_path, color_amount, size_modi
                 )
                 xml_data[i + 1] = re.sub(pattern, replacement, xml_data[i + 1])
 
-
     with open(json_file_path, "w") as f:
         json.dump(json_data, f, indent=2)
 
@@ -360,8 +390,8 @@ def write_environments(
     xml_object_dir_path,
     colorset_file_path,
     color_amount,
-    size_modifier_list, 
-    size_amount
+    size_modifier_list,
+    size_amount,
 ):
     """Generates xml files in xml_output_dir_path based on the entries in the json file
 
@@ -394,11 +424,11 @@ def write_environments(
             colorset_file_path=colorset_file_path,
             color_amount=color_amount,
             size_modifier_list=size_modifier_list,
-            size_amount=size_amount
+            size_amount=size_amount,
         )
 
 
-def main(): 
+def main():
     # Define paths
     json_file = os.path.join("json_files", "prompts.json")
     yml_output_dir_path = os.path.join("yml_files")
