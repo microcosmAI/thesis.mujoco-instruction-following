@@ -11,12 +11,12 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
     """Write a single yml file based on one entry in the json file
 
     Args:
-        entry (dict): Entry describing the target object and prompt
-        yml_output_dir_path (str): Path to output directory
-        object_pool (list): List of all object types that occur in the json file
+        entry (dict): entry describing the target object and prompt
+        yml_output_dir_path (str): path to output directory
+        object_pool (list): list of all object types that occur in the json file
 
     Raises:
-        ValueError: If no object shape is found in the entry
+        ValueError: if no object shape is found in the entry
     """
 
     # Define the fixed structure for the yml file
@@ -137,7 +137,19 @@ def write_xml_entry(
     size_modifier_list,
     size_amount,
 ):
-    """Generates a single xml file based on a single yml file, using details from the json file containing the prompts"""
+    """
+    Generates a single xml file based on a single yml file, using details from the json file containing the prompts
+
+    Args:
+        entry (dict): entry from the json file containing details for generating the xml file
+        yml_output_dir_path (str): directory path where the yml output files are stored
+        xml_object_dir_path (str): directory path where the xml object files are stored
+        xml_output_dir_path (str): directory path where the xml output files will be stored
+        colorset_file_path (str): file path of the colorset file
+        color_amount (int): amount of colors the objects can have
+        size_modifier_list (list): list (of dicts) of size modifiers for the objects
+        size_amount (int): amount of sizes to be used from the size_modifier_list
+    """
 
     # get yml/xml filenames from json entry
     yml_file_path = os.path.join(
@@ -150,6 +162,7 @@ def write_xml_entry(
     xml_object_dir_path = os.path.join(xml_object_dir_path)
 
     # call PITA
+    print(f'Writing xml for prompt "{entry["prompt"]}"...')
     PITA().run(
         random_seed=None,
         config_path=yml_file_path,
@@ -160,7 +173,7 @@ def write_xml_entry(
         plot=False,
     )
 
-    # TODO change the colors of the objects in the xml file according to my experiment
+    # change the colors and sizes of the objects in the xml file
     modify_xml(
         xml_file_path,
         entry,
@@ -242,13 +255,11 @@ def modify_xml(
         xml_data = f.readlines()
 
     colorset = colorset[:color_amount]
-    # colorset = [color for color in colorset if color != target_color]
-
     target_positions = {}  # format: {position: color} (position is a tuple)
     distractor_positions = {}
     placeholder_positions = []
 
-    # modify the json file, store positions as object ID for modifying the xml file
+    # modify the json file, store positions (as object ID) for modifying the xml file
     for key in json_data:
         # Objects with tags can be either:
         #  - in "environment" key, where they are one level deep
@@ -323,7 +334,7 @@ def modify_xml(
                 for k in keys_to_delete:
                     del json_data[key][area_name]["objects"][k]
 
-    # round the positions to two decimals
+    # round the positions to two decimals for robust matching
     target_positions = {
         tuple([round(p, 2) for p in pos]): color
         for pos, color in target_positions.items()
@@ -333,10 +344,10 @@ def modify_xml(
         for pos, color in distractor_positions.items()
     }
 
-    # add one empty line to the end of the xml file for the regex
+    # needed for the regex
     xml_data.append("\n")
 
-    # modify the xml file based on the previously stored positions.
+    # modify the xml file based on the previously stored positions and values
     for i, line in enumerate(xml_data.copy()):
         if str("pos=") in line:
             xml_pos = line.split("pos=")[1].split('"')[1].split(" ")
@@ -429,6 +440,7 @@ def write_environments(
 
 
 def main():
+    # For debugging, intended to run from curriculum_generation.py
     # Define paths
     json_file = os.path.join("json_files", "prompts.json")
     yml_output_dir_path = os.path.join("yml_files")
