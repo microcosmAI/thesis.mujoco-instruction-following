@@ -25,9 +25,9 @@
 #  For each folder, do step 4 from above if the user wants custom parameters, 3 otherwise
 
 import os
-import sys
+#import sys
 import xml.etree.ElementTree as ET
-import argparse
+#import argparse
 import shutil
 
 

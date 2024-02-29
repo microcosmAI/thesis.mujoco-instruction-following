@@ -213,12 +213,8 @@ if __name__ == "__main__":
 
     # set paths and such for the config dict
     # path to folder xml_files from current dir:
-    xml_file_path = os.path.join(
-        os.getcwd(), "xml_debug_files", "advance_to_the_tea_tree.xml"
-    )
-    json_files = os.path.join(
-        os.getcwd(), "xml_debug_files", "advance_to_the_tea_tree.json"
-    )
+    xml_file_path = ""
+    json_files = ""
     agents = ["agent/"]
     num_envs = 2
 
@@ -226,8 +222,8 @@ if __name__ == "__main__":
         "xmlPath": xml_file_path,
         "infoJson": json_files,
         "agents": agents,
-        "rewardFunctions": [target_reward],  # add collision reward later
-        "doneFunctions": [target_done],
+        "rewardFunctions": [target_reward, collision_reward],  # add collision reward later
+        "doneFunctions": [target_done, border_done],
         "skipFrames": 5,
         "environmentDynamics": [Reward],
         "freeJoint": True,

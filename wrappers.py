@@ -109,23 +109,25 @@ class ObservationWrapper(gym.Wrapper):
             print(f"Saved image {self.image_step} to {image_path}")
 
     def map_discrete_to_continuous(self, action):
-        # TODO test a non-action
-        factor = 1.0
+        factor = 0.99
+        return np.array([0.0, 1.0, 1.0], dtype=np.float32)
         if action == 0:  # action_1
-            return np.array([1.0 * factor, 0.0, 0.0])
+            return np.array([1.0 * factor, 0.0, 0.0], dtype=np.float32)
         elif action == 1:  # inverse of action_1
-            return np.array([-1.0 * factor, 0.0, 0.0])
+            return np.array([-1.0 * factor, 0.0, 0.0], dtype=np.float32)
         elif action == 2:  # action_2
-            return np.array([0.0, 1.0 * factor, 0.0])
+            return np.array([0.0, 1.0 * factor, 0.0], dtype=np.float32)
         elif action == 3:  # inverse of action_2
-            return np.array([0.0, -1.0 * factor, 0.0])
+            return np.array([0.0, -1.0 * factor, 0.0], dtype=np.float32)
         elif action == 4:  # action_3
-            return np.array([0.0, 0.0, 1.0 * factor])
+            return np.array([0.0, 0.0, 1.0 * factor], dtype=np.float32)
         elif action == 5:  # inverse of action_3
-            return np.array([0.0, 0.0, -1.0 * factor])
+            return np.array([0.0, 0.0, -1.0 * factor], dtype=np.float32)
+        elif action == 6:  # action_4
+            return np.array([0.0, 0.0, 0.0], dtype=np.float32)
         else:
             raise ValueError("Invalid action")
-
+        
     def step(self, action):
         # translate action
         action = self.map_discrete_to_continuous(action)

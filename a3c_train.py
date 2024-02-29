@@ -297,7 +297,11 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict)
     )  # debugging
 
     # Generate a new environment
-    #config_dict["xmlPath"] = current_file_paths
+    config_dict["xmlPath"] = current_file_paths
+    # go over current_file_paths, replace each .xml ending with .json
+    config_dict["infoJson"] = [
+        file_path.replace(".xml", ".json") for file_path in current_file_paths
+    ]
 
     # TODO return current_reward from train
     writer = SummaryWriter()

@@ -23,7 +23,7 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
     yml_data = {
         # Environment size is fixed at 100x100
         "Environment": {
-            "size_range": [100, 100],
+            "size_range": [42, 42],
             "Style": [{"pretty_mode": False}],
             "Borders": [
                 {"xml_name": "Border.xml"},
@@ -47,7 +47,7 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
                     "Agent": [
                         {"xml_name": "BoxAgent.xml"},
                         {"amount": [1, 1]},
-                        {"z_rotation_range": [-180, 180]},
+                        {"z_rotation_range": [45, -45]},
                         {"tags": ["Agent"]},
                     ],
                 },
