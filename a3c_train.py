@@ -1,35 +1,20 @@
-import torch.optim as optim
-
-from models import *
-from torch.autograd import Variable
-
-import logging
-
-from MuJoCo_Gym.mujoco_rl import MuJoCoRL
-from MuJoCo_Gym.wrappers import GymnasiumWrapper, GymWrapper
-from gymnasium.wrappers.frame_stack import FrameStack
-
-import instruction_processing
-
-from wrappers import ObservationWrapper
-
-# from gymnasium.wrappers import NormalizeObservationV0
-from dynamics import *
-import argparse
 import os
 import random
-import time
-from distutils.util import strtobool
 import gymnasium as gym
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.optim as optim
-from torch.distributions.normal import Normal
-from torch.utils.tensorboard import SummaryWriter
+from torch.autograd import Variable
+import logging
 
-# from wrappers.record_episode_statistics import RecordEpisodeStatistics
-from progressbar import progressbar
+from MuJoCo_Gym.mujoco_rl import MuJoCoRL
+from MuJoCo_Gym.wrappers import GymnasiumWrapper
+
+from models import *
+from wrappers import ObservationWrapper
+from dynamics import *
+
+from torch.utils.tensorboard import SummaryWriter
 
 
 def make_env(config_dict):
@@ -311,20 +296,8 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict)
     #    file_path.replace(".xml", ".json") for file_path in current_file_paths
     #]
     
-    # TODO return current_reward from train
     writer = SummaryWriter()
-    #config_dict["tensorboard_writer"] = writer
     train(rank, args, shared_model, config_dict, writer)
     writer.close()
 
     pass
-
-
-def get_random_file(directory):
-    files = os.listdir(directory)
-    files = [f for f in files if f.endswith(".xml")]
-    return random.choice(files)
-
-
-def convert_filename_to_instruction(filename):
-    return filename.split(".")[0].replace("_", " ")

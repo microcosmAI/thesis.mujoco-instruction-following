@@ -1,7 +1,6 @@
 import json
 import os
 import xml.etree.ElementTree as ET
-import argparse
 from itertools import product
 
 
@@ -39,6 +38,7 @@ def generate_color_list(colorset_file_path, color_amount):
 
 def read_mujoco_shapes(directory):
     """Reads all .xml files in a directory and returns a list of dicts with the model attribute and the filename
+    Does not return default objects (Border, Light, BoxAgent)
 
     Args:
         directory (str): path to directory containing .xml files
@@ -55,6 +55,10 @@ def read_mujoco_shapes(directory):
             if mujoco_element is not None:
                 model_attribute = mujoco_element.attrib.get("model", "")
                 shapes.append({"model": model_attribute, "xml_name": filename})
+
+    # remove default objects
+    default_objects = ["Border.xml", "Light.xml", "BoxAgent.xml"]
+    shapes = [shape for shape in shapes if shape["xml_name"] not in default_objects]
 
     return shapes
 
@@ -254,151 +258,3 @@ def write_prompts(
             json.dump(prompt_list, json_file)
     except Exception as e:
         print(f"An error occurred while writing to the file: {e}")
-
-
-def main():
-    # Data to build instructions from
-    color_filepath = "./data/colors/output_1words_rgb.json"
-    xml_object_dir_path = "./data/objects"
-    instr_file_path = "./data/instructions/instructions.txt"
-    instr_types = ["approach", "avoid"]
-    output_filepath = "./output/prompts.json"
-
-    size_modifier_list = ["large", "small", "huge", "tiny"]
-    color_list = read_colors(color_filepath)
-    shape_list = read_mujoco_shapes(xml_object_dir_path)
-    instr_lists = [
-        read_instructions_by_type(instr_file_path, instr_type)
-        for instr_type in instr_types
-    ]
-
-    # Metadata for CLI
-    max_color_amount = len(color_list)
-    max_shape_amount = len(shape_list)
-    max_instr_amounts = [len(instr_list) for instr_list in instr_lists]
-    max_size_amount = len(size_modifier_list)
-
-    # Parser
-    parser = argparse.ArgumentParser(
-        description="Process instructions and count occurrences."
-    )
-
-    # Add command-line arguments for user input
-    parser.add_argument(
-        "--color_amount",
-        type=int,
-        choices=range(1, max_color_amount + 1),
-        default=3,
-        help="Number of colors",
-    )
-    parser.add_argument(
-        "--shape_amount",
-        type=int,
-        choices=range(1, max_shape_amount + 1),
-        default=2,
-        help="Number of shapes",
-    )
-
-    # Add dynamic arguments based on max_instr_amounts and instr_types
-    for i, max_instr_amount in enumerate(max_instr_amounts):
-        attribute_name = instr_types[i] + "_instr_amount"
-        parser.add_argument(
-            f"--{attribute_name}",
-            type=int,
-            choices=range(1, max_instr_amount + 1),
-            default=1,
-            nargs="+",
-            help=f"Instruction amounts for {attribute_name}",
-        )
-
-    parser.add_argument(
-        "--size_amount",
-        type=int,
-        choices=range(1, max_size_amount + 1),
-        default=1,
-        help="Size amount",
-    )
-
-    args = parser.parse_args()
-
-    # Initial calculation
-    instr_amounts = max_instr_amounts
-    total_variations = calculate_total_variations(
-        color_amount=args.color_amount,
-        shape_amount=args.shape_amount,
-        instruction_amounts=instr_amounts,
-        size_amount=args.size_amount,
-    )
-    print(f"Initial Total Variations: {total_variations}")
-
-    while True:
-        # Ask user for input
-        print('\nEnter new values (type "exit" to quit):')
-        color_amount = int(
-            input(f"Color Amount ({args.color_amount}): ") or args.color_amount
-        )
-        shape_amount = int(
-            input(f"Shape Amount ({args.shape_amount}): ") or args.shape_amount
-        )
-        instr_amounts = []
-        for i, max_instr_amount in enumerate(max_instr_amounts):
-            attribute_name = instr_types[i] + "_instr_amount"
-            current_value = getattr(args, attribute_name)
-            new_value = int(
-                input(
-                    f"Amount of instructions of type {instr_types[i]} ({current_value}): "
-                )
-                or current_value,
-            )
-            instr_amounts.append(new_value)
-
-        size_amount = int(
-            input(f"Size Amount ({args.size_amount}): ") or args.size_amount
-        )
-
-        # Calculate total variations
-        total_variations = calculate_total_variations(
-            color_amount=color_amount,
-            shape_amount=shape_amount,
-            instruction_amounts=instr_amounts,
-            size_amount=size_amount,
-        )
-        print(f"Total Variations: {total_variations}")
-
-        # Update arguments for the next iteration
-        args.color_amount = color_amount
-        args.shape_amount = shape_amount
-        args.instr_amounts = instr_amounts
-        args.size_amount = size_amount
-
-        if (
-            input(
-                "\nDo you want to alter these values? (type no to proceed) (yes/no): "
-            ).lower()
-            != "yes"
-        ):
-            break
-
-    combinations = generate_prompt_dicts(
-        color_list=generate_color_list(
-            json_file=color_filepath, color_amount=color_amount
-        ),
-        shape_list=generate_shape_list(
-            directory=xml_object_dir_path, shape_amount=shape_amount
-        ),
-        size_list=generate_size_modifiers(
-            size_amount=size_amount, size_modifier_list=size_modifier_list
-        ),
-        instruction_list=[
-            generate_instr_list_by_type(
-                json_file=instr_file_path,
-                instr_type=instr_type,
-                instr_amount=instr_amount,
-            )
-            for instr_type, instr_amount in zip(instr_types, instr_amounts)
-        ],
-    )
-
-
-if __name__ == "__main__":
-    main()

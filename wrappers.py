@@ -110,7 +110,8 @@ class ObservationWrapper(gym.Wrapper):
 
     def map_discrete_to_continuous(self, action):
         factor = 0.99
-        return np.array([1.0, 0.0, 0.1], dtype=np.float32)
+        rot_factor = 0.1 # different factor for rotation actions (3rd value in action vector)
+        #return np.array([0.0, 0.0, 0.1], dtype=np.float32)
         if action == 0:  # action_1
             return np.array([1.0 * factor, 0.0, 0.0], dtype=np.float32)
         elif action == 1:  # inverse of action_1
@@ -120,9 +121,9 @@ class ObservationWrapper(gym.Wrapper):
         elif action == 3:  # inverse of action_2
             return np.array([0.0, -1.0 * factor, 0.0], dtype=np.float32)
         elif action == 4:  # action_3
-            return np.array([0.0, 0.0, 1.0 * factor], dtype=np.float32)
+            return np.array([0.0, 0.0, 1.0 * rot_factor], dtype=np.float32)
         elif action == 5:  # inverse of action_3
-            return np.array([0.0, 0.0, -1.0 * factor], dtype=np.float32)
+            return np.array([0.0, 0.0, -1.0 * rot_factor], dtype=np.float32)
         elif action == 6:  # action_4
             return np.array([0.0, 0.0, 0.0], dtype=np.float32)
         else:

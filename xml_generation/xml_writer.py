@@ -23,21 +23,22 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
     yml_data = {
         # Environment size is fixed at 100x100
         "Environment": {
-            "size_range": [42, 42],
+            "size_range": [16, 16],
             "Style": [{"pretty_mode": False}],
             "Borders": [
                 {"xml_name": "Border.xml"},
                 {"place": True},
                 {"tags": ["Border"]},
+                {"color_groups": [1, 4]}
             ],
-            # Placeholder object because PITA needs at least one object in the environment to work (in its current version)
             "Objects": {
-                "Placeholder": [
-                    {"xml_name": "Box.xml"},
+                "Light": [
+                    {"xml_name": "Light.xml"},
                     {"amount": 1},
-                    {"coordinates": [[1, 1, -30]]},  # under the floor
-                    {"tags": ["Placeholder"]},
+                    {"coordinates": [[50, 50, 15]]},  
+                    {"tags": ["Light"]},
                 ],
+
             },
         },
         # Placing the objects in one half, the agent in the other half by splitting into two areas
@@ -47,7 +48,7 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
                     "Agent": [
                         {"xml_name": "BoxAgent.xml"},
                         {"amount": [1, 1]},
-                        {"z_rotation_range": [45, -45]},
+                        {"z_rotation_range": [270, 271]},
                         {"tags": ["Agent"]},
                     ],
                 },
@@ -169,7 +170,7 @@ def write_xml_entry(
         xml_dir=xml_object_dir_path,
         export_path=xml_file_path.removesuffix(
             ".xml"
-        ),  # TODO test if it works with suffix
+        ), 
         plot=False,
     )
 
@@ -437,27 +438,3 @@ def write_environments(
             size_modifier_list=size_modifier_list,
             size_amount=size_amount,
         )
-
-
-def main():
-    # For debugging, intended to run from curriculum_generation.py
-    # Define paths
-    json_file = os.path.join("json_files", "prompts.json")
-    yml_output_dir_path = os.path.join("yml_files")
-    xml_output_dir_path = os.path.join("xml_files")
-    xml_object_dir_path = os.path.join("objects")
-
-    # Write ymls and xmls
-    print("Using objects stored at", xml_object_dir_path)
-    print("Writing ymls at", yml_output_dir_path)
-    print("Writing xmls at", xml_output_dir_path)
-    write_environments(
-        json_file=json_file,
-        yml_output_dir_path=yml_output_dir_path,
-        xml_output_dir_path=xml_output_dir_path,
-        xml_object_dir_path=xml_object_dir_path,
-    )
-
-
-if __name__ == "__main__":
-    main()
