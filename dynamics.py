@@ -123,7 +123,6 @@ def target_done(mujoco_gym, agent):
 
     for target in targets:
         if mujoco_gym.collision(target, agent + "boxagent_geom"):
-            print("collision with target - done")
             return True
             
         else:

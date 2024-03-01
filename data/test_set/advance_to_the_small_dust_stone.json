@@ -1,0 +1,267 @@
+{
+  "environment": {
+    "configuration": {
+      "Style": [
+        {
+          "pretty_mode": false
+        }
+      ],
+      "size_range": [
+        16,
+        16
+      ]
+    },
+    "objects": {
+      "border/border": {
+        "name": "border/border",
+        "type": null,
+        "class": "Border",
+        "position": [
+          0.0,
+          9.0,
+          2.0
+        ],
+        "color": [
+          0.035,
+          0.016,
+          0.29,
+          1.0
+        ],
+        "size": [
+          8.0,
+          1.0,
+          2.0
+        ],
+        "tags": [
+          "Border"
+        ]
+      },
+      "border_1/border": {
+        "name": "border_1/border",
+        "type": null,
+        "class": "Border",
+        "position": [
+          0.0,
+          -9.0,
+          2.0
+        ],
+        "color": [
+          0.035,
+          0.016,
+          0.29,
+          1.0
+        ],
+        "size": [
+          8.0,
+          1.0,
+          2.0
+        ],
+        "tags": [
+          "Border"
+        ]
+      },
+      "border_2/border": {
+        "name": "border_2/border",
+        "type": null,
+        "class": "Border",
+        "position": [
+          9.0,
+          0.0,
+          2.0
+        ],
+        "color": [
+          0.035,
+          0.016,
+          0.29,
+          1.0
+        ],
+        "size": [
+          1.0,
+          8.0,
+          2.0
+        ],
+        "tags": [
+          "Border"
+        ]
+      },
+      "border_3/border": {
+        "name": "border_3/border",
+        "type": null,
+        "class": "Border",
+        "position": [
+          -9.0,
+          0.0,
+          2.0
+        ],
+        "color": [
+          0.035,
+          0.016,
+          0.29,
+          1.0
+        ],
+        "size": [
+          1.0,
+          8.0,
+          2.0
+        ],
+        "tags": [
+          "Border"
+        ]
+      },
+      "light/light": {
+        "name": "light/light",
+        "type": null,
+        "class": "Light",
+        "position": [
+          0.0,
+          0.0,
+          15.0
+        ],
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          0.0
+        ],
+        "size": [
+          0.5
+        ],
+        "tags": [
+          "Light"
+        ]
+      }
+    }
+  },
+  "areas": {
+    "Area1": {
+      "configuration": {},
+      "objects": {
+        "agent/agent": {
+          "name": "agent/agent",
+          "type": null,
+          "class": "BoxAgent",
+          "position": [
+            -2.3241499999999995,
+            -1.3097000000000003,
+            0.5
+          ],
+          "color": [
+            0.949,
+            0.7451,
+            0.1333,
+            1.0
+          ],
+          "size": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "tags": [
+            "Agent"
+          ]
+        }
+      }
+    },
+    "Area2": {
+      "configuration": {},
+      "objects": {
+        "stone0/stone0": {
+          "name": "stone0/stone0",
+          "type": null,
+          "class": "Stone",
+          "position": [
+            3.4203,
+            -1.5016999999999996,
+            0.1
+          ],
+          "color": [
+            0.6980392156862745,
+            0.6,
+            0.43137254901960786,
+            1.0
+          ],
+          "size": [
+            0.05,
+            0.05,
+            1.0
+          ],
+          "tags": [
+            "Target"
+          ]
+        },
+        "stone1/stone1": {
+          "name": "stone1/stone1",
+          "type": null,
+          "class": "Stone",
+          "position": [
+            4.77125,
+            2.596399999999999,
+            0.1
+          ],
+          "color": [
+            0.396078431372549,
+            0.6705882352941176,
+            0.48627450980392156,
+            1.0
+          ],
+          "size": [
+            0.2,
+            0.2,
+            4.0
+          ],
+          "tags": [
+            "Distractor"
+          ]
+        },
+        "apple/apple": {
+          "name": "apple/apple",
+          "type": null,
+          "class": "Apple",
+          "position": [
+            2.24565,
+            0.1402000000000001,
+            0.1
+          ],
+          "color": [
+            0.6470588235294118,
+            0.6392156862745098,
+            0.5686274509803921,
+            1.0
+          ],
+          "size": [
+            0.05,
+            0.05,
+            1.0
+          ],
+          "tags": [
+            "Distractor"
+          ]
+        },
+        "apple_1/apple": {
+          "name": "apple_1/apple",
+          "type": null,
+          "class": "Apple",
+          "position": [
+            4.54835,
+            7.658899999999999,
+            0.1
+          ],
+          "color": [
+            0.6470588235294118,
+            0.6392156862745098,
+            0.5686274509803921,
+            1.0
+          ],
+          "size": [
+            0.2,
+            0.2,
+            4.0
+          ],
+          "tags": [
+            "Distractor"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -2,57 +2,19 @@ import argparse
 import os
 
 os.environ["OMP_NUM_THREADS"] = "1"
-import numpy as np
 import torch
 import torch.multiprocessing as mp
 
 from models import A3C_LSTM_GA
 from a3c_train import train_curriculum, train
-
-# from a3c_test import test
-
 import logging
 
-from MuJoCo_Gym.mujoco_rl import MuJoCoRL
-from MuJoCo_Gym.wrappers import GymnasiumWrapper, GymWrapper
-from gymnasium.wrappers.frame_stack import FrameStack
-
-# from gymnasium.wrappers import NormalizeObservationV0
 from dynamics import *
-import argparse
-import os
-import random
-import time
 from distutils.util import strtobool
-import gym
 import numpy as np
-import torch.nn as nn
-import torch.optim as optim
-from torch.distributions.normal import Normal
-from torch.utils.tensorboard import SummaryWriter
 
 import instruction_processing as ip
-
-# from wrappers.record_episode_statistics import RecordEpisodeStatistics
 from progressbar import progressbar
-
-
-def make_env(config_dict):
-    def thunk():
-        env = MuJoCoRL(config_dict=config_dict)
-        env = GymWrapper(env, config_dict["agents"][0])
-        env = gym.wrappers.RecordEpisodeStatistics(env)
-        env = gym.wrappers.ClipAction(env)
-        env = gym.wrappers.NormalizeObservation(env)
-        env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
-        env = gym.wrappers.NormalizeReward(env)
-        env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
-        env.action_space.seed(1)
-        env.observation_space.seed(1)
-
-        return env
-
-    return thunk
 
 
 parser = argparse.ArgumentParser(description="Gated-Attention for Grounding")
@@ -62,8 +24,8 @@ parser.add_argument(
     "-l",
     "--max-episode-length",
     type=int,
-    default=300,
-    help="maximum length of an episode (default: 30)",
+    default=1000,
+    help="maximum length of an episode (default: 1000)",
 )
 parser.add_argument(
     "--living-reward",
@@ -227,7 +189,7 @@ if __name__ == "__main__":
         "skipFrames": 5,
         "environmentDynamics": [Reward],
         "freeJoint": True,
-        "renderMode": True,
+        "renderMode": False,
         "maxSteps": 4096 * 16,
         "agentCameras": True,
         "tensorboard_writer": None,

@@ -57,9 +57,7 @@ def train(rank, args, shared_model, config_dict, writer):
     env = gym.experimental.vector.AsyncVectorEnv(
         [make_env(config_dict) for _ in range(1)], context="spawn", shared_memory=False
     )
-
-    print(env.single_action_space.shape)
-
+    
     _ = env.reset()
 
     model = A3C_LSTM_GA(args)
@@ -70,13 +68,14 @@ def train(rank, args, shared_model, config_dict, writer):
     #        torch.load(args.load, map_location=lambda storage, loc: storage)
     #    )
 
-    if args.load != "0":
-        print(str(rank) + " Loading model ... " + args.load)
-        checkpoint = torch.load(args.load)
-        model.load_state_dict(checkpoint["model_state_dict"])
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        num_iters = checkpoint["num_iters"]
-        print("Checkpoint loaded - ", num_iters, "K iters")
+    if args.load != "0": # TODO fix this
+       # print(str(rank) + " Loading model ... " + args.load)
+       # checkpoint = torch.load(args.load)
+       # model.load_state_dict(checkpoint["model_state_dict"])
+       # optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+       # num_iters = checkpoint["num_iters"]
+       # print("Checkpoint loaded - ", num_iters, "K iters")
+        pass
 
     model.train()
 
@@ -159,11 +158,8 @@ def train(rank, args, shared_model, config_dict, writer):
             if done:
                 break
 
-        print("num_steps:", args.num_steps)
-        print("episode length: ", episode_length)
         R = torch.zeros(1, 1)
         if not done:
-            print("not done")
             tx = Variable(torch.from_numpy(np.array([episode_length])).long())
 
             value, _, _ = model(

@@ -64,7 +64,7 @@ class ObservationWrapper(gym.Wrapper):
 
         image = image[start_row:end_row, start_col:end_col]
 
-        self.write_image(image=image, interval=1000)
+        self.write_image(image=image, interval=10000)
 
         if len(image.shape) == 3:
             image = np.expand_dims(image, 0)  # add batch dimension
