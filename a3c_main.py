@@ -189,7 +189,7 @@ if __name__ == "__main__":
         "skipFrames": 5,
         "environmentDynamics": [Reward],
         "freeJoint": True,
-        "renderMode": False,
+        "renderMode": True,
         "maxSteps": 4096 * 16,
         "agentCameras": True,
         "tensorboard_writer": None,
