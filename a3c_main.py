@@ -62,7 +62,7 @@ parser.add_argument(
     "-l",
     "--max-episode-length",
     type=int,
-    default=30,
+    default=300,
     help="maximum length of an episode (default: 30)",
 )
 parser.add_argument(
@@ -227,7 +227,7 @@ if __name__ == "__main__":
         "skipFrames": 5,
         "environmentDynamics": [Reward],
         "freeJoint": True,
-        "renderMode": False,
+        "renderMode": True,
         "maxSteps": 4096 * 16,
         "agentCameras": True,
         "tensorboard_writer": None,

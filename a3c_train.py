@@ -174,8 +174,11 @@ def train(rank, args, shared_model, config_dict, writer):
             if done:
                 break
 
+        print("num_steps:", args.num_steps)
+        print("episode length: ", episode_length)
         R = torch.zeros(1, 1)
         if not done:
+            print("not done")
             tx = Variable(torch.from_numpy(np.array([episode_length])).long())
 
             value, _, _ = model(
@@ -292,6 +295,11 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict)
         if file.endswith(".xml")
     ]
 
+    # debugging TODO remove
+    current_file_paths = current_file_paths[0]
+    config_dict["infoJson"] = current_file_paths.replace(".xml", ".json")
+    
+
     print(
         "Training on level ", current_level, "with files:", current_file_paths
     )  # debugging
@@ -299,10 +307,10 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict)
     # Generate a new environment
     config_dict["xmlPath"] = current_file_paths
     # go over current_file_paths, replace each .xml ending with .json
-    config_dict["infoJson"] = [
-        file_path.replace(".xml", ".json") for file_path in current_file_paths
-    ]
-
+    #config_dict["infoJson"] = [
+    #    file_path.replace(".xml", ".json") for file_path in current_file_paths
+    #]
+    
     # TODO return current_reward from train
     writer = SummaryWriter()
     #config_dict["tensorboard_writer"] = writer
