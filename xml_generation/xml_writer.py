@@ -29,16 +29,15 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
                 {"xml_name": "Border.xml"},
                 {"place": True},
                 {"tags": ["Border"]},
-                {"color_groups": [1, 4]}
+                {"color_groups": [1, 4]},
             ],
             "Objects": {
                 "Light": [
                     {"xml_name": "Light.xml"},
                     {"amount": 1},
-                    {"coordinates": [[50, 50, 15]]},  
+                    {"coordinates": [[50, 50, 15]]},
                     {"tags": ["Light"]},
                 ],
-
             },
         },
         # Placing the objects in one half, the agent in the other half by splitting into two areas
@@ -168,9 +167,7 @@ def write_xml_entry(
         random_seed=None,
         config_path=yml_file_path,
         xml_dir=xml_object_dir_path,
-        export_path=xml_file_path.removesuffix(
-            ".xml"
-        ), 
+        export_path=xml_file_path.removesuffix(".xml"),
         plot=False,
     )
 
@@ -348,6 +345,9 @@ def modify_xml(
     # needed for the regex
     xml_data.append("\n")
 
+    # for updating agent position (required for the PITA version used, can be removed in future versions)
+    agent_line = None
+
     # modify the xml file based on the previously stored positions and values
     for i, line in enumerate(xml_data.copy()):
         if str("pos=") in line:
@@ -387,6 +387,27 @@ def modify_xml(
                     replacement.replace("[", "").replace("]", "").replace(",", "")
                 )
                 xml_data[i + 1] = re.sub(pattern, replacement, xml_data[i + 1])
+
+        # The agent position gets moved up the hierarchy in the xml file here, such that the freeJoint
+        # and the agent geom are in the same parent tag. The child tags need to be positioned 0. 0. 0.
+        # This is required to keep rotation and position intact within mujoco. 
+        # This can be removed when using future versions of PITA, which will generate the xml files 
+        # in the correct format.
+        if 'name="agent/"' in line:
+            agent_line = i
+
+        if agent_line is not None and "pos=" in line:
+            # Get the position and add it to the agent tag
+            agent_pos = line.split('pos="')[1].split('"')[0]
+            agent_pos = f'pos="{agent_pos}"'
+            xml_data[agent_line] = xml_data[agent_line].replace(">", f" {agent_pos}>")
+
+            # Set the position of the agent geom to 0 0 0
+            pattern = r'pos="[^"]*"'
+            replacement = 'pos="0 0 0"'
+            xml_data[i] = re.sub(pattern, replacement, xml_data[i])
+
+            agent_line = None
 
     with open(json_file_path, "w") as f:
         json.dump(json_data, f, indent=2)
