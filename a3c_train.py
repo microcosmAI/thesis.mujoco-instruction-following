@@ -22,9 +22,9 @@ def make_env(config_dict):
         env = MuJoCoRL(config_dict=config_dict)
         env = GymnasiumWrapper(env, config_dict["agents"][0])
         env = gym.wrappers.RecordEpisodeStatistics(env)
-        #env = gym.wrappers.ClipAction(env)
+        # env = gym.wrappers.ClipAction(env)
         env = gym.wrappers.NormalizeObservation(env)
-        env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
+        # env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
         env = gym.wrappers.NormalizeReward(env)
         env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
         env = ObservationWrapper(
@@ -36,7 +36,6 @@ def make_env(config_dict):
             config_dict=config_dict,
         )
         env.action_space.seed(1)
-        print("action space", env.action_space)
         env.observation_space.seed(1)
 
         return env
@@ -68,13 +67,13 @@ def train(rank, args, shared_model, config_dict, writer):
     #        torch.load(args.load, map_location=lambda storage, loc: storage)
     #    )
 
-    if args.load != "0": # TODO fix this
-       # print(str(rank) + " Loading model ... " + args.load)
-       # checkpoint = torch.load(args.load)
-       # model.load_state_dict(checkpoint["model_state_dict"])
-       # optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-       # num_iters = checkpoint["num_iters"]
-       # print("Checkpoint loaded - ", num_iters, "K iters")
+    if args.load != "0":  # TODO fix this
+        # print(str(rank) + " Loading model ... " + args.load)
+        # checkpoint = torch.load(args.load)
+        # model.load_state_dict(checkpoint["model_state_dict"])
+        # optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        # num_iters = checkpoint["num_iters"]
+        # print("Checkpoint loaded - ", num_iters, "K iters")
         pass
 
     model.train()
@@ -94,8 +93,9 @@ def train(rank, args, shared_model, config_dict, writer):
     done = True
 
     episode_length = 0
+    episode_lengths = []  # NOTE added
     num_iters = 0
-    img_nr = 0
+    total_steps = 0
 
     while True:
         # Sync with the shared model
@@ -113,7 +113,6 @@ def train(rank, args, shared_model, config_dict, writer):
         log_probs = []
         rewards = []
         entropies = []
-        episode_lengths = []  # NOTE added
 
         for step in range(args.num_steps):
             episode_length += 1
@@ -145,7 +144,7 @@ def train(rank, args, shared_model, config_dict, writer):
                 reset_dict, _ = env.reset()
                 image = reset_dict["image"]
                 instruction_idx = reset_dict["instruction_idx"]
-                
+
                 image = torch.from_numpy(image).float()
                 instruction_idx = torch.from_numpy(instruction_idx)
 
@@ -156,6 +155,9 @@ def train(rank, args, shared_model, config_dict, writer):
             rewards.append(reward)
 
             if done:
+                track_tensorboard_metrics(
+                    writer, num_iters, p_losses, rewards, episode_lengths
+                )
                 break
 
         R = torch.zeros(1, 1)
@@ -226,49 +228,6 @@ def train(rank, args, shared_model, config_dict, writer):
         ensure_shared_grads(model, shared_model)
         optimizer.step()
 
-        log_interval = 100
-        if len(p_losses) % log_interval == 0:
-            # Save model and optimizer state
-            # torch.save(
-            #    {
-            #        "model_state_dict": model.state_dict(),
-            #        "optimizer_state_dict": optimizer.state_dict(),
-            #        "num_iters": num_iters,
-            #    },
-            #    "checkpoint.pth",
-            # )
-            print("Checkpoint saved - ", len(p_losses) / 1000, "K steps")
-
-            total_steps = len(p_losses) + num_iters*1000
-
-            # make a metric that includes all rewards that are below 0, and is 0 otherwise
-            negative_rewards = [reward for reward in rewards if reward < 0]
-            if len(negative_rewards) > 0:
-                max_negative_reward = max(negative_rewards)
-            else:
-                max_negative_reward = 0
-
-            positive_rewards = [reward for reward in rewards if reward > 0]
-            if len(positive_rewards) > 0:
-                max_positive_reward = max(positive_rewards)
-            else:
-                max_positive_reward = 0
-
-            median_reward = np.median(rewards[-log_interval:])
-            median_episode_length = np.median(episode_lengths[-log_interval:])
-
-            writer.add_scalar("Median Reward", median_reward, total_steps)
-            writer.add_scalar(
-                "Median Episode Length", median_episode_length, total_steps
-            )
-            writer.add_scalar(
-                "Max Negative Reward", max_negative_reward, total_steps
-            )
-            writer.add_scalar(
-                "Max Positive Reward", max_positive_reward, total_steps
-            )
-            writer.flush()
-
 
 def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict):
     # TODO pull from the curriculum all relevant information
@@ -284,9 +243,9 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict)
     current_level = 0
 
     # curriculum loop # TODO actually make it increase levels
-    #for current_level in progressbar(range(len(level_dir_paths))):
+    # for current_level in progressbar(range(len(level_dir_paths))):
     #    while current_reward < threshold_reward:
-            # pull all xml files from the current level directory
+    # pull all xml files from the current level directory
     current_level_dir_path = level_dir_paths[current_level]
 
     current_file_paths = [
@@ -298,7 +257,6 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict)
     # debugging TODO remove
     current_file_paths = current_file_paths[0]
     config_dict["infoJson"] = current_file_paths.replace(".xml", ".json")
-    
 
     print(
         "Training on level ", current_level, "with files:", current_file_paths
@@ -307,12 +265,44 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict)
     # Generate a new environment
     config_dict["xmlPath"] = current_file_paths
     # go over current_file_paths, replace each .xml ending with .json
-    #config_dict["infoJson"] = [
+    # config_dict["infoJson"] = [
     #    file_path.replace(".xml", ".json") for file_path in current_file_paths
-    #]
-    
+    # ]
+
     writer = SummaryWriter()
     train(rank, args, shared_model, config_dict, writer)
     writer.close()
 
     pass
+
+
+def track_tensorboard_metrics(writer, num_iters, p_losses, rewards, episode_lengths):
+    total_steps = sum(episode_lengths)
+    print(total_steps/1000, "K steps")
+
+    total_reward = sum(rewards)
+    avg_reward = total_reward / len(rewards)
+    median_reward = np.median(rewards)
+    max_reward = max(rewards)
+    min_reward = min(rewards)
+
+    avg_p_loss = sum(p_losses) / len(p_losses)
+    max_p_loss = max(p_losses)
+    min_p_loss = min(p_losses)
+
+    min_episode_length = min(episode_lengths)
+
+    writer.add_scalar("Total Reward", total_reward, total_steps)
+    writer.add_scalar("Average Reward", avg_reward, total_steps)
+    writer.add_scalar("Median Reward", median_reward, total_steps)
+    writer.add_scalar("Max Reward", max_reward, total_steps)
+    writer.add_scalar("Min Reward", min_reward, total_steps)
+
+    writer.add_scalar("Average Policy Loss", avg_p_loss, total_steps)
+    writer.add_scalar("Max Policy Loss", max_p_loss, total_steps)
+    writer.add_scalar("Min Policy Loss", min_p_loss, total_steps)
+
+    writer.add_scalar("Episode Length", episode_lengths[:-1], total_steps)
+    writer.add_scalar("Min Episode Length", min_episode_length, total_steps)
+
+    writer.flush()
