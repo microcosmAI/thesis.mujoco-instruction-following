@@ -39,31 +39,31 @@
         <light name="light//unnamed_light_0" class="light/" />
       </body>
     </body>
-    <body euler="0 0 270.08179881250862" name="agent/" pos="-2.8485499999999995 -2.7145999999999999 0.5">
+    <body euler="0 0 270.97841260274754" name="agent/" pos="-2.2233000000000001 -1.4866999999999999 0.5">
       <joint name="agent/boxagent_freeJoint/" class="/" type="free" />
       <body name="agent/agent" pos="0 0 0" euler="0 0 0">
         <geom name="agent/boxagent_geom" class="agent/" type="box" size="0.5 0.5 0.5" rgba="0.949 0.7451 0.1333 1.0" euler="0 0 0" />
-        <camera name="agent/boxagent_camera" class="agent/" pos="0 -0.90000000000000002 0" euler="90 0 0" />
+        <camera name="agent/boxagent_camera" class="agent/" pos="0 -0.59999999999999998 0" euler="90 0 0" />
       </body>
     </body>
     <body name="apple0/">
-      <body name="apple0/apple0" pos="3.8958499999999998 -3.7209000000000003 0.10000000000000001" euler="0 0 154.11623372133459">
+      <body name="apple0/apple0" pos="3.5199500000000001 -1.3932000000000002 0.10000000000000001" euler="0 0 -107.3264979070242">
         <geom name="apple0/apple_geom" class="apple0/" type="box" size="0.05 0.05 1.0" rgba="0.396078431372549 0.6705882352941176 0.48627450980392156 1.0" />
       </body>
     </body>
     <body name="apple1/">
-      <body name="apple1/apple1" pos="5.1116999999999999 3.861699999999999 0.10000000000000001" euler="0 0 -20.597715216040882">
-        <geom name="apple1/apple_geom" class="apple1/" type="box" size="0.025 0.025 0.5" rgba="0.6980392156862745 0.6 0.43137254901960786 1.0" />
+      <body name="apple1/apple1" pos="5.2501499999999997 5.7044999999999995 0.10000000000000001" euler="0 0 -177.26144109645168">
+        <geom name="apple1/apple_geom" class="apple1/" type="box" size="0.2 0.2 4.0" rgba="0.6980392156862745 0.6 0.43137254901960786 1.0" />
       </body>
     </body>
     <body name="stone/">
-      <body name="stone/stone" pos="4.4344000000000001 5.0551999999999992 0.10000000000000001" euler="0 0 179.12504091743273">
-        <geom name="stone/stone_geom" class="stone/" type="box" size="0.2 0.2 4.0" rgba="0.6980392156862745 0.6 0.43137254901960786 1.0" />
+      <body name="stone/stone" pos="2.5183499999999999 -4.2542 0.10000000000000001" euler="0 0 -95.17779301079382">
+        <geom name="stone/stone_geom" class="stone/" type="box" size="0.05 0.05 1.0" rgba="0.396078431372549 0.6705882352941176 0.48627450980392156 1.0" />
       </body>
     </body>
     <body name="stone_1/">
-      <body name="stone_1/stone" pos="4.9532499999999997 -3.7201000000000004 0.10000000000000001" euler="0 0 -85.228203609326428">
-        <geom name="stone_1/stone_geom" class="stone_1/" type="box" size="0.2 0.2 4.0" rgba="0.396078431372549 0.6705882352941176 0.48627450980392156 1.0" />
+      <body name="stone_1/stone" pos="2.7333499999999997 -7.0854999999999997 0.10000000000000001" euler="0 0 146.84017413079363">
+        <geom name="stone_1/stone_geom" class="stone_1/" type="box" size="0.05 0.05 1.0" rgba="0.6980392156862745 0.6 0.43137254901960786 1.0" />
       </body>
     </body>
     <geom name="base_plane" class="/" type="plane" size="8 8 0.10000000000000001" />

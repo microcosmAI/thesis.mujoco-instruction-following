@@ -241,12 +241,31 @@ def train(rank, args, shared_model, config_dict, writer):
 
             total_steps = len(p_losses) + num_iters*1000
 
+            # make a metric that includes all rewards that are below 0, and is 0 otherwise
+            negative_rewards = [reward for reward in rewards if reward < 0]
+            if len(negative_rewards) > 0:
+                max_negative_reward = max(negative_rewards)
+            else:
+                max_negative_reward = 0
+
+            positive_rewards = [reward for reward in rewards if reward > 0]
+            if len(positive_rewards) > 0:
+                max_positive_reward = max(positive_rewards)
+            else:
+                max_positive_reward = 0
+
             median_reward = np.median(rewards[-log_interval:])
             median_episode_length = np.median(episode_lengths[-log_interval:])
 
             writer.add_scalar("Median Reward", median_reward, total_steps)
             writer.add_scalar(
                 "Median Episode Length", median_episode_length, total_steps
+            )
+            writer.add_scalar(
+                "Max Negative Reward", max_negative_reward, total_steps
+            )
+            writer.add_scalar(
+                "Max Positive Reward", max_positive_reward, total_steps
             )
             writer.flush()
 

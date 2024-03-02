@@ -1,5 +1,5 @@
 # from MuJoCo_Gym.mujoco_rl import MuJoCoRL
-# import numpy as np
+import numpy as np
 # import cv2
 import copy
 
@@ -65,6 +65,12 @@ class Reward:
         )
         reward = self.environment.data_store["last_distance"] - new_distance
         self.environment.data_store["last_distance"] = copy.deepcopy(new_distance)
+
+        # with a chance of 1/100, the reward is 1 or -2
+        if np.random.randint(0, 100) == 0:
+            reward = 2.5
+        elif np.random.randint(0, 100) == 1:
+            reward = -2.5
 
         return reward, [], 0, 0
 
