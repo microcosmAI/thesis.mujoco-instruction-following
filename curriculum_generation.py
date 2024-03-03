@@ -20,11 +20,11 @@ def get_default_level_parameters(level_amount):
     """
     color_amounts = [2, 2, 3, 3, 4, 5, 6, 6, 6][:level_amount]
     shape_amounts = [1, 2, 2, 3, 3, 4, 5, 6, 6][:level_amount]
-    size_amounts = [1, 1, 2, 2, 2, 2, 2, 2, 2][:level_amount]
+    size_amounts = [2, 2, 2, 2, 2, 2, 2, 2, 2][:level_amount]
     instr_type_amounts = 2
     instr_amounts = [
         [1, 1, 2, 2, 3, 3, 4, 4, 5, 5][:level_amount],
-        [0, 0, 0, 0, 0, 1, 1, 1, 1, 1][:level_amount],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0][:level_amount], # NOTE reward functions for non-approach type instructions are not implemented
     ][:instr_type_amounts]
 
     return {

@@ -119,7 +119,7 @@ parser.add_argument(
 parser.add_argument(
     "--num-steps",
     type=int,
-    default=20,
+    default=60,
     metavar="NS",
     help="number of forward steps in A3C (default: 20)",
 )
@@ -186,7 +186,7 @@ if __name__ == "__main__":
         "agents": agents,
         "rewardFunctions": [target_reward, collision_reward], 
         "doneFunctions": [target_done, border_done],
-        "skipFrames": 5,
+        "skipFrames": 15,
         "environmentDynamics": [Reward],
         "freeJoint": True,
         "renderMode": False,

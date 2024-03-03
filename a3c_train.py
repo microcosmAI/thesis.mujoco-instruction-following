@@ -22,7 +22,7 @@ def make_env(config_dict):
         env = MuJoCoRL(config_dict=config_dict)
         env = GymnasiumWrapper(env, config_dict["agents"][0])
         env = gym.wrappers.RecordEpisodeStatistics(env)
-        # env = gym.wrappers.ClipAction(env)
+        #env = gym.wrappers.ClipAction(env)
         env = gym.wrappers.NormalizeObservation(env)
         # env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
         env = gym.wrappers.NormalizeReward(env)
@@ -257,6 +257,7 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict)
     # debugging TODO remove
     current_file_paths = current_file_paths[0]
     config_dict["infoJson"] = current_file_paths.replace(".xml", ".json")
+    #config_dict["renderMode"] = True
 
     print(
         "Training on level ", current_level, "with files:", current_file_paths
@@ -265,9 +266,9 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict)
     # Generate a new environment
     config_dict["xmlPath"] = current_file_paths
     # go over current_file_paths, replace each .xml ending with .json
-    # config_dict["infoJson"] = [
-    #    file_path.replace(".xml", ".json") for file_path in current_file_paths
-    # ]
+    #config_dict["infoJson"] = [
+    #   file_path.replace(".xml", ".json") for file_path in current_file_paths
+    #]
 
     writer = SummaryWriter()
     train(rank, args, shared_model, config_dict, writer)
@@ -286,11 +287,15 @@ def track_tensorboard_metrics(writer, num_iters, p_losses, rewards, episode_leng
     max_reward = max(rewards)
     min_reward = min(rewards)
 
+    if len(p_losses) == 0:
+        p_losses.append(0)
     avg_p_loss = sum(p_losses) / len(p_losses)
     max_p_loss = max(p_losses)
     min_p_loss = min(p_losses)
 
     min_episode_length = min(episode_lengths)
+
+    last_episode_length = episode_lengths[-1]
 
     writer.add_scalar("Total Reward", total_reward, total_steps)
     writer.add_scalar("Average Reward", avg_reward, total_steps)
@@ -302,7 +307,7 @@ def track_tensorboard_metrics(writer, num_iters, p_losses, rewards, episode_leng
     writer.add_scalar("Max Policy Loss", max_p_loss, total_steps)
     writer.add_scalar("Min Policy Loss", min_p_loss, total_steps)
 
-    writer.add_scalar("Episode Length", episode_lengths[:-1], total_steps)
+    writer.add_scalar("Episode Length", last_episode_length, total_steps)
     writer.add_scalar("Min Episode Length", min_episode_length, total_steps)
 
     writer.flush()

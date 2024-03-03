@@ -64,7 +64,7 @@ class ObservationWrapper(gym.Wrapper):
 
         image = image[start_row:end_row, start_col:end_col]
 
-        self.write_image(image=image, interval=10000)
+        self.write_image(image=image, interval=100000)
 
         if len(image.shape) == 3:
             image = np.expand_dims(image, 0)  # add batch dimension
@@ -109,8 +109,11 @@ class ObservationWrapper(gym.Wrapper):
             print(f"Saved image {self.image_step} to {image_path}")
 
     def map_discrete_to_continuous(self, action):
-        factor = 0.8
+        factor = 0.9
         rot_factor = 1.0 # different factor for rotation actions (3rd value in action vector)
+
+        """
+        # for 7 discrete actions
         if action == 0:  # action_1
             return np.array([1.0 * factor, 0.0, 0.0], dtype=np.float32)
         elif action == 1:  # inverse of action_1
@@ -127,6 +130,30 @@ class ObservationWrapper(gym.Wrapper):
             return np.array([0.0, 0.0, 0.0], dtype=np.float32)
         else:
             raise ValueError("Invalid action")
+        """
+        #return np.array([1.0, 0.0, 0.0], dtype=np.float32)  # for 1 action / debugging
+
+        # for 5 discrete actions
+        if action == 0: # forward
+            return np.array([1.0 * factor, 0.0, 0.0], dtype=np.float32)
+        elif action == 1: # rotation 1
+            return np.array([0.0, 0.0, 1.0*rot_factor], dtype=np.float32)
+        elif action == 2: # rotation 2
+            return np.array([0.0, 0.0, -1.0*rot_factor], dtype=np.float32)
+        elif action == 3: # sideways 1
+            return np.array([0.0, 1.0*factor, 0.0], dtype=np.float32)
+        elif action == 4: # sideways 2
+            return np.array([0.0, -1.0*factor, 0.0], dtype=np.float32)
+        
+        # for 3 discrete actions (forward and both sides)
+        """
+        if action == 0: # forward
+            return np.array([1.0 * factor, 0.0, 0.0], dtype=np.float32)
+        elif action == 1: # sideways 1
+            return np.array([0.0, 1.0*factor, 0.0], dtype=np.float32)
+        elif action == 2: # sideways 2
+            return np.array([0.0, -1.0*factor, 0.0], dtype=np.float32)
+        """
         
     def step(self, action):
         # translate action

@@ -46,9 +46,10 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
                 "Objects": {
                     "Agent": [
                         {"xml_name": "BoxAgent.xml"},
-                        {"amount": [1, 1]},
+                        {"amount": 1}, # Needs to be [1, 1] if random placement is desired
                         {"z_rotation_range": [270, 271]},
                         {"tags": ["Agent"]},
+                        {"coordinates": [[20, 50, 0.5]]}, # remove to place randomly in area1
                     ],
                 },
             },

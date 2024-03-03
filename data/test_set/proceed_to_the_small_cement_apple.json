@@ -141,8 +141,8 @@
           "type": null,
           "class": "BoxAgent",
           "position": [
-            -5.08065,
-            0.8956999999999997,
+            -6.4,
+            0.0,
             0.5
           ],
           "color": [
@@ -165,13 +165,13 @@
     "Area2": {
       "configuration": {},
       "objects": {
-        "stone0/stone0": {
-          "name": "stone0/stone0",
+        "apple0/apple0": {
+          "name": "apple0/apple0",
           "type": null,
-          "class": "Stone",
+          "class": "Apple",
           "position": [
-            4.75595,
-            -2.769,
+            3.1474,
+            0.4651999999999994,
             0.1
           ],
           "color": [
@@ -181,21 +181,45 @@
             1.0
           ],
           "size": [
-            0.2,
-            0.2,
-            4.0
+            0.05,
+            0.05,
+            1.0
           ],
           "tags": [
             "Target"
           ]
         },
-        "stone1/stone1": {
-          "name": "stone1/stone1",
+        "apple1/apple1": {
+          "name": "apple1/apple1",
+          "type": null,
+          "class": "Apple",
+          "position": [
+            5.81415,
+            -6.1813,
+            0.1
+          ],
+          "color": [
+            0.396078431372549,
+            0.6705882352941176,
+            0.48627450980392156,
+            1.0
+          ],
+          "size": [
+            0.05,
+            0.05,
+            1.0
+          ],
+          "tags": [
+            "Distractor"
+          ]
+        },
+        "stone/stone": {
+          "name": "stone/stone",
           "type": null,
           "class": "Stone",
           "position": [
-            2.66,
-            -3.3872,
+            3.6439,
+            -6.6302,
             0.1
           ],
           "color": [
@@ -213,43 +237,19 @@
             "Distractor"
           ]
         },
-        "apple/apple": {
-          "name": "apple/apple",
+        "stone_1/stone": {
+          "name": "stone_1/stone",
           "type": null,
-          "class": "Apple",
+          "class": "Stone",
           "position": [
-            5.7613,
-            1.0022000000000002,
+            5.7307500000000005,
+            4.5732,
             0.1
           ],
           "color": [
-            0.6470588235294118,
-            0.6392156862745098,
-            0.5686274509803921,
-            1.0
-          ],
-          "size": [
-            0.2,
-            0.2,
-            4.0
-          ],
-          "tags": [
-            "Distractor"
-          ]
-        },
-        "apple_1/apple": {
-          "name": "apple_1/apple",
-          "type": null,
-          "class": "Apple",
-          "position": [
-            3.55355,
-            -1.0225,
-            0.1
-          ],
-          "color": [
-            0.6470588235294118,
-            0.6392156862745098,
-            0.5686274509803921,
+            0.6980392156862745,
+            0.6,
+            0.43137254901960786,
             1.0
           ],
           "size": [
