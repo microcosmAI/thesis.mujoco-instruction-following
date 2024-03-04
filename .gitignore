@@ -1,8 +1,8 @@
 # Ignore all output files
 data/curriculum/*
 !data/curriculum/
-#data/test_set/*
-#!data/test_set/
+data/test_set/*
+!data/test_set/
 images/*
 !images
 runs/
