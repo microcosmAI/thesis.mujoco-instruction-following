@@ -119,7 +119,7 @@ parser.add_argument(
 parser.add_argument(
     "--num-steps",
     type=int,
-    default=60,
+    default=20,
     metavar="NS",
     help="number of forward steps in A3C (default: 20)",
 )
@@ -178,7 +178,6 @@ if __name__ == "__main__":
     xml_file_path = ""
     json_files = ""
     agents = ["agent/"]
-    num_envs = 2
 
     config_dict = {
         "xmlPath": xml_file_path,
@@ -230,11 +229,10 @@ if __name__ == "__main__":
     print("Finished training")
 
     # Start the training thread(s)
-    for rank in range(0, args.num_processes):
-        print("Starting training thread", rank)
-        # p = mp.Process(target=train, args=(rank, args, shared_model, config_dict))
-        # p.start()
-        # processes.append(p)
-        train(rank, args, shared_model, config_dict)
+    #for rank in range(args.num_processes):
+    #    p = mp.Process(target=train_curriculum, args=(curriculum_dir_path, rank, args, shared_model, config_dict))
+    #    p.start()
+    #    processes.append(p)
+
     # for p in processes:
     # p.join()

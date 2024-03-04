@@ -95,12 +95,18 @@ def train(rank, args, shared_model, config_dict, writer):
     episode_length = 0
     episode_lengths = []  # NOTE added
     num_iters = 0
-    total_steps = 0
+    first_iter = True
+
 
     while True:
         # Sync with the shared model
         model.load_state_dict(shared_model.state_dict())
         if done:
+
+            if not first_iter:
+                episode_lengths.append(episode_length)
+            first_iter = False
+
             episode_length = 0
             cx = Variable(torch.zeros(1, 256))
             hx = Variable(torch.zeros(1, 256))
@@ -148,15 +154,13 @@ def train(rank, args, shared_model, config_dict, writer):
                 image = torch.from_numpy(image).float()
                 instruction_idx = torch.from_numpy(instruction_idx)
 
-                episode_lengths.append(episode_length)
-
             values.append(value)
             log_probs.append(log_prob)
             rewards.append(reward)
 
             if done:
                 track_tensorboard_metrics(
-                    writer, num_iters, p_losses, rewards, episode_lengths
+                    writer, p_losses, rewards, episode_lengths
                 )
                 break
 
@@ -277,37 +281,39 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict)
     pass
 
 
-def track_tensorboard_metrics(writer, num_iters, p_losses, rewards, episode_lengths):
-    total_steps = sum(episode_lengths)
-    print(total_steps/1000, "K steps")
+def track_tensorboard_metrics(writer, p_losses, rewards, episode_lengths):
 
-    total_reward = sum(rewards)
-    avg_reward = total_reward / len(rewards)
-    median_reward = np.median(rewards)
-    max_reward = max(rewards)
-    min_reward = min(rewards)
+    if episode_lengths:
+        total_steps = sum(episode_lengths)
+        print(total_steps/1000, "K steps")
 
-    if len(p_losses) == 0:
-        p_losses.append(0)
-    avg_p_loss = sum(p_losses) / len(p_losses)
-    max_p_loss = max(p_losses)
-    min_p_loss = min(p_losses)
+        total_reward = sum(rewards)
+        avg_reward = total_reward / len(rewards)
+        median_reward = np.median(rewards)
+        max_reward = max(rewards)
+        min_reward = min(rewards)
 
-    min_episode_length = min(episode_lengths)
+        if len(p_losses) == 0:
+            p_losses.append(0)
+        avg_p_loss = sum(p_losses) / len(p_losses)
+        max_p_loss = max(p_losses)
+        min_p_loss = min(p_losses)
 
-    last_episode_length = episode_lengths[-1]
+        min_episode_length = min(episode_lengths)
 
-    writer.add_scalar("Total Reward", total_reward, total_steps)
-    writer.add_scalar("Average Reward", avg_reward, total_steps)
-    writer.add_scalar("Median Reward", median_reward, total_steps)
-    writer.add_scalar("Max Reward", max_reward, total_steps)
-    writer.add_scalar("Min Reward", min_reward, total_steps)
+        last_episode_length = episode_lengths[-1]
 
-    writer.add_scalar("Average Policy Loss", avg_p_loss, total_steps)
-    writer.add_scalar("Max Policy Loss", max_p_loss, total_steps)
-    writer.add_scalar("Min Policy Loss", min_p_loss, total_steps)
+        writer.add_scalar("Total Reward", total_reward, total_steps)
+        writer.add_scalar("Average Reward", avg_reward, total_steps)
+        writer.add_scalar("Median Reward", median_reward, total_steps)
+        writer.add_scalar("Max Reward", max_reward, total_steps)
+        writer.add_scalar("Min Reward", min_reward, total_steps)
 
-    writer.add_scalar("Episode Length", last_episode_length, total_steps)
-    writer.add_scalar("Min Episode Length", min_episode_length, total_steps)
+        writer.add_scalar("Average Policy Loss", avg_p_loss, total_steps)
+        writer.add_scalar("Max Policy Loss", max_p_loss, total_steps)
+        writer.add_scalar("Min Policy Loss", min_p_loss, total_steps)
 
-    writer.flush()
+        writer.add_scalar("Episode Length", last_episode_length, total_steps)
+        writer.add_scalar("Min Episode Length", min_episode_length, total_steps)
+
+        writer.flush()
