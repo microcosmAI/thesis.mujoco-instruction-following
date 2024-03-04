@@ -17,7 +17,7 @@ from dynamics import *
 from torch.utils.tensorboard import SummaryWriter
 
 
-def make_env(config_dict):
+def make_env(config_dict, curriculum_dir_path):
     def thunk():
         env = MuJoCoRL(config_dict=config_dict)
         env = GymnasiumWrapper(env, config_dict["agents"][0])
@@ -30,7 +30,7 @@ def make_env(config_dict):
         env = ObservationWrapper(
             env,
             camera="agent/boxagent_camera",
-            curriculum_directory=os.path.join("data", "curriculum"),
+            curriculum_directory=curriculum_dir_path,
             threshold_reward=0.5,
             make_env=make_env,
             config_dict=config_dict,
@@ -50,11 +50,11 @@ def ensure_shared_grads(model, shared_model):
         shared_param._grad = param.grad
 
 
-def train(rank, args, shared_model, config_dict, writer):
+def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path):
     torch.manual_seed(args.seed + rank)
     # make env as async vector env
     env = gym.experimental.vector.AsyncVectorEnv(
-        [make_env(config_dict) for _ in range(1)], context="spawn", shared_memory=False
+        [make_env(config_dict, curriculum_dir_path) for _ in range(1)], context="spawn", shared_memory=False
     )
 
     _ = env.reset()
@@ -275,7 +275,7 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict)
     #]
 
     writer = SummaryWriter()
-    train(rank, args, shared_model, config_dict, writer)
+    train(rank, args, shared_model, config_dict, writer, curriculum_dir_path)
     writer.close()
 
     pass

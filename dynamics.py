@@ -38,6 +38,9 @@ class Reward:
                 self.environment.data_store["target_geoms"].append(target_geom_name)
 
         if not "agent" in self.environment.data_store.keys():
+            print( self.environment.filter_by_tag(
+                "Agent"
+            )[0])
             self.environment.data_store["agent"] = self.environment.filter_by_tag(
                 "Agent"
             )[0]
