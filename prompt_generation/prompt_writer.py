@@ -50,12 +50,11 @@ def read_mujoco_shapes(directory):
     shapes = []
     for filename in Path(directory).iterdir():
         if filename.suffix == ".xml":
-            filename = str(filename)
             tree = ET.parse(filename)
             mujoco_element = tree.getroot()
             if mujoco_element is not None:
                 model_attribute = mujoco_element.attrib.get("model", "")
-                shapes.append({"model": model_attribute, "xml_name": filename.split("/")[-1]}) # Example.xml
+                shapes.append({"model": model_attribute, "xml_name": filename.name}) # Example.xml
 
     # remove default objects
     default_objects = ["Border.xml", "Light.xml", "BoxAgent.xml"]
