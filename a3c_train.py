@@ -263,10 +263,13 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict)
     current_file_paths = current_file_paths[0]
     config_dict["infoJson"] = current_file_paths.replace(".xml", ".json")
     #config_dict["renderMode"] = True
+    current_file_paths = Path(current_file_paths).as_posix()
+    config_dict["xmlPath"] = Path(config_dict["xmlPath"]).as_posix()
 
     print(
         "Training on level ", current_level, "with files:", current_file_paths
     )  # debugging
+
 
     # Generate a new environment
     config_dict["xmlPath"] = current_file_paths
