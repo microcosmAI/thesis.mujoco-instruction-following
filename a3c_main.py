@@ -1,5 +1,6 @@
 import argparse
 import os
+from pathlib import Path
 
 os.environ["OMP_NUM_THREADS"] = "1"
 import torch
@@ -162,9 +163,7 @@ if __name__ == "__main__":
     else:
         assert False, "Invalid evaluation type"
 
-    curriculum_dir_path = os.path.join(
-        os.getcwd(), "data", "curriculum"
-    )  # TODO adapt to new dataset
+    curriculum_dir_path = Path.cwd() / "data" / "curriculum"
 
     # env = grounding_env.GroundingEnv(args)
     # args.input_size = len(env.word_to_idx)
@@ -196,9 +195,11 @@ if __name__ == "__main__":
     }
 
     # Setup logging
-    if not os.path.exists(args.dump_location):
-        os.makedirs(args.dump_location)
-    logging.basicConfig(filename=args.dump_location + log_filename, level=logging.INFO)
+    dump_location = Path(args.dump_location)
+    if not dump_location.exists():
+        dump_location.mkdir(parents=True, exist_ok=True)
+    logging.basicConfig(filename=str(dump_location / log_filename), level=logging.INFO)
+
 
     shared_model = A3C_LSTM_GA(args)
 

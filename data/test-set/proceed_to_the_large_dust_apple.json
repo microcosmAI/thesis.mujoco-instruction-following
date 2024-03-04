@@ -1,0 +1,267 @@
+{
+  "environment": {
+    "configuration": {
+      "Style": [
+        {
+          "pretty_mode": false
+        }
+      ],
+      "size_range": [
+        16,
+        16
+      ]
+    },
+    "objects": {
+      "border/border": {
+        "name": "border/border",
+        "type": null,
+        "class": "Border",
+        "position": [
+          0.0,
+          9.0,
+          2.0
+        ],
+        "color": [
+          0.035,
+          0.016,
+          0.29,
+          1.0
+        ],
+        "size": [
+          8.0,
+          1.0,
+          2.0
+        ],
+        "tags": [
+          "Border"
+        ]
+      },
+      "border_1/border": {
+        "name": "border_1/border",
+        "type": null,
+        "class": "Border",
+        "position": [
+          0.0,
+          -9.0,
+          2.0
+        ],
+        "color": [
+          0.035,
+          0.016,
+          0.29,
+          1.0
+        ],
+        "size": [
+          8.0,
+          1.0,
+          2.0
+        ],
+        "tags": [
+          "Border"
+        ]
+      },
+      "border_2/border": {
+        "name": "border_2/border",
+        "type": null,
+        "class": "Border",
+        "position": [
+          9.0,
+          0.0,
+          2.0
+        ],
+        "color": [
+          0.035,
+          0.016,
+          0.29,
+          1.0
+        ],
+        "size": [
+          1.0,
+          8.0,
+          2.0
+        ],
+        "tags": [
+          "Border"
+        ]
+      },
+      "border_3/border": {
+        "name": "border_3/border",
+        "type": null,
+        "class": "Border",
+        "position": [
+          -9.0,
+          0.0,
+          2.0
+        ],
+        "color": [
+          0.035,
+          0.016,
+          0.29,
+          1.0
+        ],
+        "size": [
+          1.0,
+          8.0,
+          2.0
+        ],
+        "tags": [
+          "Border"
+        ]
+      },
+      "light/light": {
+        "name": "light/light",
+        "type": null,
+        "class": "Light",
+        "position": [
+          0.0,
+          0.0,
+          15.0
+        ],
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          0.0
+        ],
+        "size": [
+          0.5
+        ],
+        "tags": [
+          "Light"
+        ]
+      }
+    }
+  },
+  "areas": {
+    "Area1": {
+      "configuration": {},
+      "objects": {
+        "agent/agent": {
+          "name": "agent/agent",
+          "type": null,
+          "class": "BoxAgent",
+          "position": [
+            -6.4,
+            0.0,
+            0.5
+          ],
+          "color": [
+            0.949,
+            0.7451,
+            0.1333,
+            1.0
+          ],
+          "size": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "tags": [
+            "Agent"
+          ]
+        }
+      }
+    },
+    "Area2": {
+      "configuration": {},
+      "objects": {
+        "apple0/apple0": {
+          "name": "apple0/apple0",
+          "type": null,
+          "class": "Apple",
+          "position": [
+            3.8457,
+            2.600200000000001,
+            0.1
+          ],
+          "color": [
+            0.6980392156862745,
+            0.6,
+            0.43137254901960786,
+            1.0
+          ],
+          "size": [
+            0.2,
+            0.2,
+            4.0
+          ],
+          "tags": [
+            "Target"
+          ]
+        },
+        "apple1/apple1": {
+          "name": "apple1/apple1",
+          "type": null,
+          "class": "Apple",
+          "position": [
+            2.6294500000000003,
+            -1.2819000000000003,
+            0.1
+          ],
+          "color": [
+            0.6470588235294118,
+            0.6392156862745098,
+            0.5686274509803921,
+            1.0
+          ],
+          "size": [
+            0.05,
+            0.05,
+            1.0
+          ],
+          "tags": [
+            "Distractor"
+          ]
+        },
+        "stone/stone": {
+          "name": "stone/stone",
+          "type": null,
+          "class": "Stone",
+          "position": [
+            4.6142,
+            -2.0272000000000006,
+            0.1
+          ],
+          "color": [
+            0.396078431372549,
+            0.6705882352941176,
+            0.48627450980392156,
+            1.0
+          ],
+          "size": [
+            0.05,
+            0.05,
+            1.0
+          ],
+          "tags": [
+            "Distractor"
+          ]
+        },
+        "stone_1/stone": {
+          "name": "stone_1/stone",
+          "type": null,
+          "class": "Stone",
+          "position": [
+            3.59465,
+            -1.0823999999999998,
+            0.1
+          ],
+          "color": [
+            0.6470588235294118,
+            0.6392156862745098,
+            0.5686274509803921,
+            1.0
+          ],
+          "size": [
+            0.2,
+            0.2,
+            4.0
+          ],
+          "tags": [
+            "Distractor"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 import shutil
 import random
 
@@ -41,7 +41,7 @@ def pull_test_set(curriculum_dir_path, test_set_dir_path, test_set_ratio):
     """Move a random subset of the highest level of the curriculum to a test set directory
 
     Args:
-        curriculum_dir_path (str): path to the curriculum directory
+        curriculum_dir_path (Path): path to the curriculum directory
         test_set_ratio (float): ratio of test stages to total stages - taken from the highest level
 
     Returns:
@@ -49,17 +49,15 @@ def pull_test_set(curriculum_dir_path, test_set_dir_path, test_set_ratio):
     """
 
     # create test set directory
-    if os.path.exists(test_set_dir_path):
+    if test_set_dir_path.exists():
         shutil.rmtree(test_set_dir_path)
-    os.mkdir(test_set_dir_path)
+    test_set_dir_path.mkdir()
 
-    highest_level_dir_path = os.path.join(
-        curriculum_dir_path, sorted(os.listdir(curriculum_dir_path))[-1]
-    )
+    highest_level_dir_path = curriculum_dir_path / sorted(curriculum_dir_path.iterdir())[-1].name
 
     # get all xml files from the highest level
     highest_level_files = [
-        file for file in os.listdir(highest_level_dir_path) if file.endswith(".xml")
+        file.name for file in highest_level_dir_path.iterdir() if file.name.endswith(".xml")
     ]
     amount_of_files_to_remove = int(len(highest_level_files) * test_set_ratio)
 
@@ -71,30 +69,30 @@ def pull_test_set(curriculum_dir_path, test_set_dir_path, test_set_ratio):
     # move files
     for file in test_set_files:
         shutil.move(
-            os.path.join(highest_level_dir_path, file),
-            os.path.join(test_set_dir_path, file),
+            highest_level_dir_path / file,
+            test_set_dir_path / file,
         )
 
     # make sure no files from the test set remain in the training set
-    for level_dir in os.listdir(curriculum_dir_path):
-        level_dir_path = os.path.join(curriculum_dir_path, level_dir)
+    for level_dir in curriculum_dir_path.iterdir():
+        level_dir_path = curriculum_dir_path / level_dir.name
         for file in test_set_files:
-            if file in os.listdir(level_dir_path):
-                os.remove(os.path.join(level_dir_path, file)) # TODO test if levels work if you just remove some files
+            if file in [f.name for f in level_dir_path.iterdir()]:
+                (level_dir_path / file).unlink() # TODO test if levels work if you just remove some files
 
     return None
 
 
 def main():
-    xkcd_dataset_file_path = os.path.join(os.getcwd(), "data", "color_data", "rgb.txt")
-    colorset_dir_path = os.path.join(os.getcwd(), "data", "color_data")
-    prompts_file_path = os.path.join(os.getcwd(), "data", "prompt_data", "prompts.json")
-    curriculum_dir_path = os.path.join(os.getcwd(), "data", "curriculum")
-    test_set_dir_path = os.path.join(os.getcwd(), "data", "test_set")
-    xml_object_dir_path = os.path.join(os.getcwd(), "data", "objects")
-    instr_file_path = os.path.join(
-        os.getcwd(), "data", "prompt_data", "instructions.txt"
-    )
+    cwd = Path.cwd()
+    xkcd_dataset_file_path = cwd / "data" / "color-data" / "rgb.txt"
+    colorset_dir_path = cwd / "data" / "color-data"
+    prompts_file_path = cwd / "data" / "prompt-data" / "prompts.json"
+    curriculum_dir_path = cwd / "data" / "curriculum"
+    test_set_dir_path = cwd / "data" / "test-set"
+    xml_object_dir_path = cwd / "data" / "objects"
+    instr_file_path = cwd / "data" / "prompt-data" / "instructions.txt"
+
     instr_types = ["approach", "avoid"]
     size_modifiers = [
         {"name": "large", "factor": 2},
@@ -116,19 +114,19 @@ def main():
         dataset_path=xkcd_dataset_file_path,
         output_dir_path=colorset_dir_path,
     )
-    colorset_file_path = os.path.join(colorset_dir_path, "colors.json")
 
+    colorset_file_path = colorset_dir_path / "colors.json"
+
+    # generate one set of prompts and their corresponding xmls for each level
     # generate one set of prompts and their corresponding xmls for each level
     for level_number in range(level_amount):
         # generate a new directory for each level
-        level_dir_path = os.path.join(curriculum_dir_path, f"level_{level_number}")
-        if os.path.exists(level_dir_path):
+        level_dir_path = curriculum_dir_path / f"level{level_number}"
+        if level_dir_path.exists():
             shutil.rmtree(level_dir_path)
-        os.mkdir(level_dir_path)
+        level_dir_path.mkdir()
 
-        prompts_file_path = os.path.join(
-            level_dir_path, f"prompts_lvl{level_number}.json"
-        )
+        prompts_file_path = level_dir_path / f"prompts-lvl{level_number}.json"
 
         instr_amounts = [
             instr_amount[level_number] for instr_amount in params["instr_amounts"]

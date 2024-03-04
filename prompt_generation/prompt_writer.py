@@ -1,7 +1,7 @@
 import json
-import os
 import xml.etree.ElementTree as ET
 from itertools import product
+from pathlib import Path
 
 
 # TODO naming convention on the functions below,
@@ -48,13 +48,14 @@ def read_mujoco_shapes(directory):
     """
 
     shapes = []
-    for filename in os.listdir(directory):
-        if filename.endswith(".xml"):
-            tree = ET.parse(os.path.join(directory, filename))
+    for filename in Path(directory).iterdir():
+        if filename.suffix == ".xml":
+            filename = str(filename)
+            tree = ET.parse(filename)
             mujoco_element = tree.getroot()
             if mujoco_element is not None:
                 model_attribute = mujoco_element.attrib.get("model", "")
-                shapes.append({"model": model_attribute, "xml_name": filename})
+                shapes.append({"model": model_attribute, "xml_name": filename.split("/")[-1]}) # Example.xml
 
     # remove default objects
     default_objects = ["Border.xml", "Light.xml", "BoxAgent.xml"]
@@ -253,6 +254,7 @@ def write_prompts(
         instruction_list=instruction_list,
     )
 
+    # Write list of dicts to file
     try:
         with open(output_file_path, "w") as json_file:
             json.dump(prompt_list, json_file)

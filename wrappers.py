@@ -1,9 +1,9 @@
 import gymnasium as gym
 import numpy as np
 import torch
-import os
 import instruction_processing as ip
 import cv2
+from pathlib import Path
 
 class ObservationWrapper(gym.Wrapper):
     def __init__(
@@ -24,9 +24,9 @@ class ObservationWrapper(gym.Wrapper):
         )
         self.level_directories = sorted(
             [
-                os.path.join(self.curriculum_directory, d)
-                for d in os.listdir(self.curriculum_directory)
-                if os.path.isdir(os.path.join(self.curriculum_directory, d))
+                str(self.curriculum_directory / d)
+                for d in self.curriculum_directory.iterdir()
+                if (self.curriculum_directory / d).is_dir()
             ]
         )
 
@@ -95,18 +95,17 @@ class ObservationWrapper(gym.Wrapper):
         self.current_instruction_idx = instruction_idx
 
     def write_image(self, image, interval):
-        if not os.path.exists(os.path.join(os.getcwd(), "data", "images")):
-            os.makedirs(os.path.join(os.getcwd(), "data", "images"))
+        images_dir = Path.cwd() / "data" / "images"
+        images_dir.mkdir(parents=True, exist_ok=True)
 
         self.image_step += 1
         if (self.image_step-900) % interval == 0:
-            image_path = os.path.join(
-                os.getcwd(), "data", "images", f"{self.image_step}.png"
-            )
+            image_path = images_dir / f"{self.image_step}.png"
 
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # convert from BGR to RGB
-            cv2.imwrite(image_path, image)
-            print(f"Saved image {self.image_step} to {image_path}")
+            cv2.imwrite(str(image_path), image)
+            print(f"Saved image {self.image_step} to {str(image_path)}")
+
 
     def map_discrete_to_continuous(self, action):
         factor = 0.9

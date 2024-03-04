@@ -1,5 +1,5 @@
 import json
-import os
+from pathlib import Path
 import numpy as np
 import torch
 
@@ -38,8 +38,9 @@ def get_word_to_idx_from_dir(instructions_dir_path):
         dict: A dictionary mapping each unique word in the file names to its index.
     """
     word_to_idx = {"-": 0}  # special token for padding
+    instructions_dir_path = Path(instructions_dir_path)
     filenames = sorted(
-        [f for f in os.listdir(instructions_dir_path) if f.endswith(".xml")]
+        [f.name for f in instructions_dir_path.iterdir() if f.name.endswith(".xml")]
     )
 
     for filename in filenames:
@@ -62,8 +63,9 @@ def get_max_instruction_length_from_dir(instructions_dir_path):
         int: The maximum length of the instructions.
     """
     max_instruction_length = 0
+    instructions_dir_path = Path(instructions_dir_path)
     filenames = sorted(
-        [f for f in os.listdir(instructions_dir_path) if f.endswith(".xml")]
+        [f.name for f in instructions_dir_path.iterdir() if f.name.endswith(".xml")]
     )
 
     for filename in filenames:
@@ -86,11 +88,12 @@ def get_word_to_idx_from_curriculum_dir(curriculum_dir_path):
         dict: A dictionary mapping each unique word in the file names to its index.
     """
     word_to_idx = {"-": 0}  # special token for padding
+    curriculum_dir_path = Path(curriculum_dir_path)
     level_directories = sorted(
         [
-            os.path.join(curriculum_dir_path, d)
-            for d in os.listdir(curriculum_dir_path)
-            if os.path.isdir(os.path.join(curriculum_dir_path, d))
+            str(curriculum_dir_path / d.name)
+            for d in curriculum_dir_path.iterdir()
+            if (curriculum_dir_path / d.name).is_dir()
         ]
     )
 
@@ -111,11 +114,12 @@ def get_max_instruction_length_from_curriculum_dir(curriculum_dir_path):
         int: The maximum length of the instructions.
     """
     max_instruction_length = 0
+    curriculum_dir_path = Path(curriculum_dir_path)
     level_directories = sorted(
         [
-            os.path.join(curriculum_dir_path, d)
-            for d in os.listdir(curriculum_dir_path)
-            if os.path.isdir(os.path.join(curriculum_dir_path, d))
+            str(curriculum_dir_path / d.name)
+            for d in curriculum_dir_path.iterdir()
+            if (curriculum_dir_path / d.name).is_dir()
         ]
     )
 

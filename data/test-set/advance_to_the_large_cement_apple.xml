@@ -1,0 +1,71 @@
+<mujoco model="unnamed_model">
+  <default>
+    <default class="/" />
+    <default class="border/" />
+    <default class="border_1/" />
+    <default class="border_2/" />
+    <default class="border_3/" />
+    <default class="light/" />
+    <default class="agent/" />
+    <default class="apple0/" />
+    <default class="apple1/" />
+    <default class="stone/" />
+    <default class="stone_1/" />
+  </default>
+  <worldbody>
+    <body name="border/">
+      <body name="border/border" pos="0 9 2">
+        <geom name="border/border_geom" class="border/" type="box" size="8.0 1.0 2.0" rgba="0.035 0.016 0.29 1.0" />
+      </body>
+    </body>
+    <body name="border_1/">
+      <body name="border_1/border" pos="0 -9 2">
+        <geom name="border_1/border_geom" class="border_1/" type="box" size="8.0 1.0 2.0" rgba="0.035 0.016 0.29 1.0" />
+      </body>
+    </body>
+    <body name="border_2/">
+      <body name="border_2/border" pos="9 0 2">
+        <geom name="border_2/border_geom" class="border_2/" type="box" size="1.0 8.0 2.0" rgba="0.035 0.016 0.29 1.0" />
+      </body>
+    </body>
+    <body name="border_3/">
+      <body name="border_3/border" pos="-9 0 2">
+        <geom name="border_3/border_geom" class="border_3/" type="box" size="1.0 8.0 2.0" rgba="0.035 0.016 0.29 1.0" />
+      </body>
+    </body>
+    <body name="light/">
+      <body name="light/light" pos="0 0 15">
+        <geom name="light/light_geom" class="light/" size="0.5" rgba="1.0 1.0 1.0 0.0" />
+        <light name="light//unnamed_light_0" class="light/" />
+      </body>
+    </body>
+    <body euler="0 0 270.43233115155459" name="agent/" pos="-6.4000000000000004 0 0.5">
+      <joint name="agent/boxagent_freeJoint/" class="/" type="free" />
+      <body name="agent/agent" pos="0 0 0" euler="0 0 0">
+        <geom name="agent/boxagent_geom" class="agent/" type="box" size="0.5 0.5 0.5" rgba="0.949 0.7451 0.1333 1.0" euler="0 0 0" />
+        <camera name="agent/boxagent_camera" class="agent/" fovy="90" pos="0 0 0.25" euler="-90 180 0" />
+      </body>
+    </body>
+    <body name="apple0/">
+      <body name="apple0/apple0" pos="2.05505 -3.4892000000000003 0.10000000000000001" euler="0 0 -73.086219895282085">
+        <geom name="apple0/apple_geom" class="apple0/" type="box" size="0.2 0.2 4.0" rgba="0.6470588235294118 0.6392156862745098 0.5686274509803921 1.0" />
+      </body>
+    </body>
+    <body name="apple1/">
+      <body name="apple1/apple1" pos="2.5762999999999998 5.164200000000001 0.10000000000000001" euler="0 0 35.385324343937953">
+        <geom name="apple1/apple_geom" class="apple1/" type="box" size="0.4 0.4 8.0" rgba="0.6980392156862745 0.6 0.43137254901960786 1.0" />
+      </body>
+    </body>
+    <body name="stone/">
+      <body name="stone/stone" pos="4.0613000000000001 4.4428000000000001 0.10000000000000001" euler="0 0 91.43928988449062">
+        <geom name="stone/stone_geom" class="stone/" type="box" size="0.05 0.05 1.0" rgba="0.396078431372549 0.6705882352941176 0.48627450980392156 1.0" />
+      </body>
+    </body>
+    <body name="stone_1/">
+      <body name="stone_1/stone" pos="3.7329499999999998 -1.7491000000000003 0.10000000000000001" euler="0 0 -84.104090130822783">
+        <geom name="stone_1/stone_geom" class="stone_1/" type="box" size="0.2 0.2 4.0" rgba="0.6980392156862745 0.6 0.43137254901960786 1.0" />
+      </body>
+    </body>
+    <geom name="base_plane" class="/" type="plane" size="8 8 0.10000000000000001" />
+  </worldbody>
+</mujoco>

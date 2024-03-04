@@ -5,6 +5,7 @@ import numpy as np
 from pita_algorithm.pita import PITA
 import re
 import random
+from pathlib import Path
 
 
 def write_yml_entry(entry, yml_output_dir_path, object_pool):
@@ -46,10 +47,14 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
                 "Objects": {
                     "Agent": [
                         {"xml_name": "BoxAgent.xml"},
-                        {"amount": 1}, # Needs to be [1, 1] if random placement is desired
+                        {
+                            "amount": 1
+                        },  # Needs to be [1, 1] if random placement is desired
                         {"z_rotation_range": [270, 271]},
                         {"tags": ["Agent"]},
-                        {"coordinates": [[20, 50, 0.5]]}, # remove to place randomly in area1
+                        {
+                            "coordinates": [[20, 50, 0.5]]
+                        },  # remove to place randomly in area1
                     ],
                 },
             },
@@ -114,10 +119,10 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
         yml_data["Areas"]["Area2"]["Objects"][obj_name] = obj_structure
 
     # Get filename from prompt
-    entry_name = entry["prompt"].replace(" ", "_").lower()
-    yml_output_file_path = os.path.join(yml_output_dir_path, f"{entry_name}.yml")
+    entry_name = entry["prompt"].replace(" ", "-").lower()
+    yml_output_file_path = Path(yml_output_dir_path) / f"{entry_name}.yml"
 
-    os.makedirs(os.path.dirname(yml_output_file_path), exist_ok=True)
+    yml_output_file_path.parent.mkdir(parents=True, exist_ok=True)
 
     yml_str = yaml.dump(yml_data, default_flow_style=None, indent=2)
 
@@ -153,22 +158,21 @@ def write_xml_entry(
     """
 
     # get yml/xml filenames from json entry
-    yml_file_path = os.path.join(
-        yml_output_dir_path, entry["prompt"].replace(" ", "_").lower() + ".yml"
+    yml_file_path = Path(yml_output_dir_path) / (
+        entry["prompt"].replace(" ", "-").lower() + ".yml"
     )
-    xml_file_path = os.path.join(
-        xml_output_dir_path, entry["prompt"].replace(" ", "_").lower() + ".xml"
+    xml_file_path = Path(xml_output_dir_path) / (
+        entry["prompt"].replace(" ", "-").lower() + ".xml"
     )
 
-    xml_object_dir_path = os.path.join(xml_object_dir_path)
+    xml_object_dir_path = Path(xml_object_dir_path)
 
     # call PITA
-    print(f'Writing xml for prompt "{entry["prompt"]}"...')
     PITA().run(
         random_seed=None,
-        config_path=yml_file_path,
-        xml_dir=xml_object_dir_path,
-        export_path=xml_file_path.removesuffix(".xml"),
+        config_path=str(yml_file_path),
+        xml_dir=str(xml_object_dir_path),
+        export_path=str(xml_file_path).removesuffix(".xml"),
         plot=False,
     )
 
@@ -241,7 +245,7 @@ def modify_xml(
             target_size_factor = target_size["factor"]
         target_size_dimensions = []  # concrete values for the size
 
-    json_file_path = xml_file_path.replace(".xml", ".json")
+    json_file_path = str(xml_file_path).replace(".xml", ".json")
 
     # get colorset, without target color and with right amount of colors
     with open(colorset_file_path, "r") as f:
@@ -391,8 +395,8 @@ def modify_xml(
 
         # The agent position gets moved up the hierarchy in the xml file here, such that the freeJoint
         # and the agent geom are in the same parent tag. The child tags need to be positioned 0. 0. 0.
-        # This is required to keep rotation and position intact within mujoco. 
-        # This can be removed when using future versions of PITA, which will generate the xml files 
+        # This is required to keep rotation and position intact within mujoco.
+        # This can be removed when using future versions of PITA, which will generate the xml files
         # in the correct format.
         if 'name="agent/"' in line:
             agent_line = i
@@ -436,7 +440,8 @@ def write_environments(
     Returns:
         none
     """
-    with open(prompts_file_path, "r") as f:
+
+    with open(str(prompts_file_path), "r") as f:
         data = json.load(f)
 
     object_pool = get_object_pool(data)

@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 import random
 import gymnasium as gym
 import numpy as np
@@ -236,11 +236,12 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path):
 def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict):
     # TODO pull from the curriculum all relevant information
     threshold_reward = 0.5  # TODO set this to a reasonable value
+    curriculum_dir_path = Path(curriculum_dir_path)
     level_dir_paths = sorted(
         [
-            os.path.join(curriculum_dir_path, d)
-            for d in os.listdir(curriculum_dir_path)
-            if os.path.isdir(os.path.join(curriculum_dir_path, d))
+            str(curriculum_dir_path / d)
+            for d in curriculum_dir_path.iterdir()
+            if (curriculum_dir_path / d).is_dir()
         ]
     )
     current_reward = 0
@@ -250,12 +251,12 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict)
     # for current_level in progressbar(range(len(level_dir_paths))):
     #    while current_reward < threshold_reward:
     # pull all xml files from the current level directory
-    current_level_dir_path = level_dir_paths[current_level]
+    current_level_dir_path = Path(level_dir_paths[current_level])
 
     current_file_paths = [
-        os.path.join(curriculum_dir_path, current_level_dir_path, file)
-        for file in os.listdir(current_level_dir_path)
-        if file.endswith(".xml")
+        str(current_level_dir_path / file)
+        for file in current_level_dir_path.iterdir()
+        if str(file).endswith(".xml")
     ]
 
     # debugging TODO remove

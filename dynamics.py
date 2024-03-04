@@ -1,13 +1,10 @@
 # from MuJoCo_Gym.mujoco_rl import MuJoCoRL
-import numpy as np
+# import numpy as np
 # import cv2
 import copy
-
 # from sklearn.metrics import mean_squared_error
 # from autoencoder import Autoencoder
 import re
-
-# import os
 
 
 class Reward:
@@ -38,9 +35,6 @@ class Reward:
                 self.environment.data_store["target_geoms"].append(target_geom_name)
 
         if not "agent" in self.environment.data_store.keys():
-            print( self.environment.filter_by_tag(
-                "Agent"
-            )[0])
             self.environment.data_store["agent"] = self.environment.filter_by_tag(
                 "Agent"
             )[0]
@@ -70,14 +64,6 @@ class Reward:
         self.environment.data_store["last_distance"] = copy.deepcopy(new_distance)
 
         return reward, [], 0, 0
-
-    # def dynamic(self, agent, actions):
-    #    # Minimal version that just returns the same reward for now
-    #    print("i'm  t - n -t , i'm  dy - na - mic")
-    #    if "target" not in self.environment.data_store[agent].keys():
-    #        self.environment.data_store["target"] = self.environment.filter_by_tag("target")[0]
-    #
-    #    return 1, []
 
 
 """def turn_done(mujoco_gym, agent):
