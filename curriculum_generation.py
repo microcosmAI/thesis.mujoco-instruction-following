@@ -1,13 +1,11 @@
-from pathlib import Path
 import shutil
 import random
-import sys
+import sys # leave me here
+from pathlib import Path
 
 from colorset_generation import colorset_writer
 from prompt_generation import prompt_writer
 from xml_generation import xml_writer
-
-# TODO write test levels
 
 
 def get_default_level_parameters(level_amount):
@@ -120,10 +118,6 @@ def main():
 
     colorset_file_path = colorset_dir_path / "colors.json"
 
-    # if curriculum_dir_path does not exist, make it
-
-
-    # generate one set of prompts and their corresponding xmls for each level
     # generate one set of prompts and their corresponding xmls for each level
     for level_number in range(level_amount):
         # generate a new directory for each level

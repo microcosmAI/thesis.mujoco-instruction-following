@@ -3,11 +3,6 @@ import xml.etree.ElementTree as ET
 from itertools import product
 from pathlib import Path
 
-
-# TODO naming convention on the functions below,
-# TODO simplify code (fewer fcts)
-
-
 def read_colors(colorset_file_path):
     """Read color names and RGB values from a .json file
 
@@ -255,7 +250,6 @@ def write_prompts(
 
     # Write list of dicts to file
     try:
-        print(prompt_list)
         with open(output_file_path, "w") as json_file:
             json.dump(prompt_list, json_file)
     except Exception as e:

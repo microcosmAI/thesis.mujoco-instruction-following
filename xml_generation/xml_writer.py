@@ -1,11 +1,10 @@
-import os
 import yaml
 import json
 import numpy as np
-from pita_algorithm.pita import PITA
 import re
 import random
 from pathlib import Path
+from pita_algorithm.pita import PITA
 
 
 def write_yml_entry(entry, yml_output_dir_path, object_pool):

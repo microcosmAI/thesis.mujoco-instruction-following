@@ -1,5 +1,4 @@
 from pathlib import Path
-import random
 import gymnasium as gym
 import numpy as np
 import torch
@@ -53,7 +52,7 @@ def ensure_shared_grads(model, shared_model):
 def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path):
     torch.manual_seed(args.seed + rank)
     # make env as async vector env
-    env = gym.experimental.vector.AsyncVectorEnv(
+    env = gym.vector.AsyncVectorEnv(
         [make_env(config_dict, curriculum_dir_path) for _ in range(1)], context="spawn", shared_memory=False
     )
 
@@ -266,6 +265,9 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict)
     current_file_paths = Path(current_file_paths).as_posix()
     config_dict["infoJson"] = Path(config_dict["infoJson"]).as_posix()
 
+    current_file_paths = str(current_file_paths)
+    config_dict["infoJson"] = str(config_dict["infoJson"])
+    
     print(
         "Training on level ", current_level, "with files:", current_file_paths, " / ", config_dict["infoJson"]
     )  # debugging

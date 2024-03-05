@@ -17,6 +17,8 @@ class Reward:
 
     def dynamic(self, agent, actions):
         if not "targets" in self.environment.data_store.keys():
+            if self.environment.filter_by_tag("Target") == []:
+                raise Exception("No targets found in environment")
             self.environment.data_store["targets"] = self.environment.filter_by_tag(
                 "Target"
             )
@@ -25,7 +27,8 @@ class Reward:
             self.environment.data_store["target_geoms"] = []
 
             for target in self.environment.data_store["targets"]:
-                # TODO this is a hack, necessary because of the way the targets are named in the json/xml files
+                # NOTE necessary because of the way the targets are named in the json/xml files
+                # watch out for this if the naming convention changes
 
                 suffix = re.split("\d", target["name"])[0] + "_geom"
                 prefix = re.split("/", target["name"])[0]
@@ -35,8 +38,7 @@ class Reward:
                 self.environment.data_store["target_geoms"].append(target_geom_name)
 
         if not "agent" in self.environment.data_store.keys():
-            print("the whole fuckting data_store:", self.environment.data_store.keys())
-            print("content of the agent key:", self.environment.data_store["agent/"])
+
             if self.environment.filter_by_tag("Agent") == []:
                 raise Exception("No agent found in environment")
             self.environment.data_store["agent"] = self.environment.filter_by_tag(
@@ -68,21 +70,6 @@ class Reward:
         self.environment.data_store["last_distance"] = copy.deepcopy(new_distance)
 
         return reward, [], 0, 0
-
-
-"""def turn_done(mujoco_gym, agent):
-    _healthy_z_range = (0.35, 1.1)
-    if mujoco_gym.data.body(agent).xipos[2] < _healthy_z_range[0] or mujoco_gym.data.body(agent).xipos[2] > _healthy_z_range[1]:
-        return True
-    else:
-        return False"""
-
-"""def turn_reward(mujoco_gym, agent):
-    _healthy_z_range = (0.35, 1.1)
-    if mujoco_gym.data.body(agent).xipos[2] < _healthy_z_range[0] or mujoco_gym.data.body(agent).xipos[2] > _healthy_z_range[1]:
-        return -0.5
-    else:
-        return 0"""
 
 
 def target_reward(mujoco_gym, agent):

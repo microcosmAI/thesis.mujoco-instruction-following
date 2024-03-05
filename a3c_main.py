@@ -219,21 +219,21 @@ if __name__ == "__main__":
     # processes.append(p)
 
     # Debugging: start a single training thread
-    #print("Starting a single training thread")
-    #train_curriculum(
-    #    curriculum_dir_path=curriculum_dir_path,
-    #    rank=0,
-    #    args=args,
-    #    shared_model=shared_model,
-    #    config_dict=config_dict,
-    #)
-    #print("Finished training")
+    print("Starting a single training thread")
+    train_curriculum(
+        curriculum_dir_path=curriculum_dir_path,
+        rank=0,
+        args=args,
+        shared_model=shared_model,
+        config_dict=config_dict,
+    )
+    print("Finished training")
 
     # Start the training thread(s)
-    for rank in range(args.num_processes):
-        p = mp.Process(target=train_curriculum, args=(curriculum_dir_path, rank, args, shared_model, config_dict))
-        p.start()
-        processes.append(p)
+    #for rank in range(args.num_processes):
+    #    p = mp.Process(target=train_curriculum, args=(curriculum_dir_path, rank, args, shared_model, config_dict))
+    #    p.start()
+    #    processes.append(p)#
 
-    for p in processes:
-        p.join()
+    #for p in processes:
+    #    p.join()
