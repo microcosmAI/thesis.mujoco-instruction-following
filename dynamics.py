@@ -35,6 +35,10 @@ class Reward:
                 self.environment.data_store["target_geoms"].append(target_geom_name)
 
         if not "agent" in self.environment.data_store.keys():
+            print("the whole fuckting data_store:", self.environment.data_store.keys())
+            print("content of the agent key:", self.environment.data_store["agent/"])
+            if self.environment.filter_by_tag("Agent") == []:
+                raise Exception("No agent found in environment")
             self.environment.data_store["agent"] = self.environment.filter_by_tag(
                 "Agent"
             )[0]

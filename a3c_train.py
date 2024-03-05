@@ -259,15 +259,15 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict)
         if str(file).endswith(".xml")
     ]
 
-    # debugging TODO remove
+    # debugging TODO remove / rewrite this whole block
     current_file_paths = current_file_paths[0]
     config_dict["infoJson"] = current_file_paths.replace(".xml", ".json")
     #config_dict["renderMode"] = True
     current_file_paths = Path(current_file_paths).as_posix()
-    config_dict["xmlPath"] = Path(config_dict["xmlPath"]).as_posix()
+    config_dict["infoJson"] = Path(config_dict["infoJson"]).as_posix()
 
     print(
-        "Training on level ", current_level, "with files:", current_file_paths
+        "Training on level ", current_level, "with files:", current_file_paths, " / ", config_dict["infoJson"]
     )  # debugging
 
 

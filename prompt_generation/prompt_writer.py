@@ -255,6 +255,7 @@ def write_prompts(
 
     # Write list of dicts to file
     try:
+        print(prompt_list)
         with open(output_file_path, "w") as json_file:
             json.dump(prompt_list, json_file)
     except Exception as e:

@@ -1,6 +1,7 @@
 from pathlib import Path
 import shutil
 import random
+import sys
 
 from colorset_generation import colorset_writer
 from prompt_generation import prompt_writer
@@ -93,6 +94,8 @@ def main():
     xml_object_dir_path = cwd / "data" / "objects"
     instr_file_path = cwd / "data" / "prompt-data" / "instructions.txt"
 
+    curriculum_dir_path.mkdir(parents=True, exist_ok=True)
+
     instr_types = ["approach", "avoid"]
     size_modifiers = [
         {"name": "large", "factor": 2},
@@ -116,6 +119,9 @@ def main():
     )
 
     colorset_file_path = colorset_dir_path / "colors.json"
+
+    # if curriculum_dir_path does not exist, make it
+
 
     # generate one set of prompts and their corresponding xmls for each level
     # generate one set of prompts and their corresponding xmls for each level
