@@ -31,8 +31,12 @@ def weights_init(m):
 
 class A3C_LSTM_GA(torch.nn.Module):
 
-    def __init__(self, args):
+    def __init__(self, args, device):
         super(A3C_LSTM_GA, self).__init__()
+
+        # Set device
+        self.device = device
+        print(f"Model using device: {self.device}")
 
         # Image Processing
         self.conv1 = nn.Conv2d(3, 128, kernel_size=8, stride=4)
@@ -73,11 +77,16 @@ class A3C_LSTM_GA(torch.nn.Module):
 
         self.lstm.bias_ih.data.fill_(0)
         self.lstm.bias_hh.data.fill_(0)
+
         self.train()
 
     def forward(self, inputs):
         x, input_inst, (tx, hx, cx) = inputs
-        input_inst = input_inst.squeeze(0)  # TODO why is this necessary?
+        input_inst = input_inst.squeeze(0)  # TODO why is this necessary?    
+
+        # Ensure correct device
+        x = x.to(self.device)
+        input_inst = input_inst.to(self.device)
 
         # Get the image representation
         x = F.relu(self.conv1(x))
@@ -86,7 +95,7 @@ class A3C_LSTM_GA(torch.nn.Module):
 
         # Fixed version (different dimensionality of hx)
         # Get the instruction representation
-        encoder_hidden = Variable(torch.zeros(1, self.gru.hidden_size))
+        encoder_hidden = Variable(torch.zeros(1, self.gru.hidden_size)).to(self.device)
         for i in range(input_inst.data.size(1)):
             word_embedding = self.embedding(input_inst[0, i]).unsqueeze(0)
 
@@ -107,7 +116,7 @@ class A3C_LSTM_GA(torch.nn.Module):
 
         # A3C-LSTM
         x = F.relu(self.linear(x))
-        hx, cx = self.lstm(x, (hx, cx))
+        hx, cx = self.lstm(x, (hx.to(x.device), cx.to(x.device)))  # Ensure hx and cx are on the correct device
         time_emb = self.time_emb_layer(tx)
         x = torch.cat((hx, time_emb.view(-1, self.time_emb_dim)), 1)
 

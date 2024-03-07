@@ -8,6 +8,7 @@ import torch.multiprocessing as mp
 
 from models import A3C_LSTM_GA
 from a3c_train import train_curriculum, train
+from a3c_test import test
 import logging
 
 from dynamics import *
@@ -113,7 +114,7 @@ parser.add_argument(
     "-n",
     "--num-processes",
     type=int,
-    default=4,
+    default=6,
     metavar="N",
     help="how many training processes to use (default: 4)",
 )
@@ -164,6 +165,11 @@ if __name__ == "__main__":
         assert False, "Invalid evaluation type"
 
     curriculum_dir_path = Path.cwd() / "data" / "curriculum"
+    curriculum_dir_path.mkdir(parents=True, exist_ok=True)
+    checkpoint_dir = Path.cwd() / "data" / "checkpoints"
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    checkpoint_file_path = checkpoint_dir / "model_checkpoint.pth"
+    test_dir_path = Path.cwd() / "data" / "test-set"
 
     # env = grounding_env.GroundingEnv(args)
     # args.input_size = len(env.word_to_idx)
@@ -172,11 +178,12 @@ if __name__ == "__main__":
     )
     args.input_size = len(word_to_idx)
 
-    # set paths and such for the config dict
-    # path to folder xml_files from current dir:
-    xml_file_path = ""
+
+    xml_file_path = "" # set in train()
     json_files = ""
     agents = ["agent/"]
+
+
 
     config_dict = {
         "xmlPath": xml_file_path,
@@ -184,7 +191,7 @@ if __name__ == "__main__":
         "agents": agents,
         "rewardFunctions": [target_reward, collision_reward], 
         "doneFunctions": [target_done, border_done],
-        "skipFrames": 15,
+        "skipFrames": 5,
         "environmentDynamics": [Reward],
         "freeJoint": True,
         "renderMode": False,
@@ -200,8 +207,10 @@ if __name__ == "__main__":
         dump_location.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(filename=str(dump_location / log_filename), level=logging.INFO)
 
-
-    shared_model = A3C_LSTM_GA(args)
+    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
+    print(f"Shared model using device: {device}")
+    shared_model = A3C_LSTM_GA(args, device).to(device)
 
     # Load the model
     if args.load != "0":
@@ -214,24 +223,24 @@ if __name__ == "__main__":
     processes = []
 
     # Start the test thread
-    # p = mp.Process(target=test, args=(args.num_processes, args, shared_model))
-    # p.start()
-    # processes.append(p)
+    p = mp.Process(target=test, args=(args.num_processes, args, shared_model, config_dict, test_dir_path, checkpoint_file_path, device))
+    p.start()
+    processes.append(p)
 
     # Debugging: start a single training thread
-    print("Starting a single training thread")
-    train_curriculum(
-        curriculum_dir_path=curriculum_dir_path,
-        rank=0,
-        args=args,
-        shared_model=shared_model,
-        config_dict=config_dict,
-    )
-    print("Finished training")
+    #print("Starting a single training thread")
+    #train_curriculum(
+    #    curriculum_dir_path=curriculum_dir_path,
+    #    rank=0,
+    #    args=args,
+    #    shared_model=shared_model,
+    #    config_dict=config_dict,
+    #)
+    #print("Finished training")
 
     # Start the training thread(s)
     #for rank in range(args.num_processes):
-    #    p = mp.Process(target=train_curriculum, args=(curriculum_dir_path, rank, args, shared_model, config_dict))
+    #    p = mp.Process(target=train_curriculum, args=(curriculum_dir_path, rank, args, shared_model, config_dict, checkpoint_file_path))
     #    p.start()
     #    processes.append(p)#
 

@@ -42,15 +42,30 @@ def make_env(config_dict, curriculum_dir_path):
     return thunk
 
 
-def ensure_shared_grads(model, shared_model):
+def ensure_shared_grads(model, shared_model, device):
+    """
+    Ensures that the gradients of the shared model are synchronized with the gradients of the local model
+    
+    Args:
+        model (torch.nn.Module): The local model whose gradients need to be synchronized
+        shared_model (torch.nn.Module): The shared model whose gradients will be updated
+        device (torch.device): The device on which the gradients will be moved
+    """
     for param, shared_param in zip(model.parameters(), shared_model.parameters()):
         if shared_param.grad is not None:
+            shared_param.grad = shared_param.grad.to(device)
             return
         shared_param._grad = param.grad
+        if shared_param._grad is not None:
+            shared_param._grad = shared_param._grad.to(device)
 
 
-def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path):
+
+def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path, checkpoint_file_path):
+    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")   
     torch.manual_seed(args.seed + rank)
+
     # make env as async vector env
     env = gym.vector.AsyncVectorEnv(
         [make_env(config_dict, curriculum_dir_path) for _ in range(1)], context="spawn", shared_memory=False
@@ -58,7 +73,7 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path):
 
     _ = env.reset()
 
-    model = A3C_LSTM_GA(args)
+    model = A3C_LSTM_GA(args, device).to(device)
 
     # if args.load != "0":
     #    print(str(rank) + " Loading model ... " + args.load)
@@ -86,8 +101,8 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path):
     image = observation_dict["image"]
     instruction_idx = observation_dict["instruction_idx"]
 
-    image = torch.from_numpy(image).float()
-    instruction_idx = torch.from_numpy(instruction_idx)
+    image = torch.from_numpy(image).float().to(device)
+    instruction_idx = torch.from_numpy(instruction_idx).to(device)
 
     done = True
 
@@ -96,10 +111,10 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path):
     num_iters = 0
     first_iter = True
 
-
     while True:
         # Sync with the shared model
         model.load_state_dict(shared_model.state_dict())
+
         if done:
 
             if not first_iter:
@@ -107,12 +122,12 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path):
             first_iter = False
 
             episode_length = 0
-            cx = Variable(torch.zeros(1, 256))
-            hx = Variable(torch.zeros(1, 256))
+            cx = Variable(torch.zeros(1, 256)).to(device)
+            hx = Variable(torch.zeros(1, 256)).to(device)
 
         else:
-            cx = Variable(cx.data)
-            hx = Variable(hx.data)
+            cx = Variable(cx.data).to(device)
+            hx = Variable(hx.data).to(device)
 
         values = []
         log_probs = []
@@ -121,11 +136,12 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path):
 
         for step in range(args.num_steps):
             episode_length += 1
-            tx = Variable(torch.from_numpy(np.array([episode_length])).long())
+            tx = Variable(torch.from_numpy(np.array([episode_length])).long()).to(device)
 
             value, logit, (hx, cx) = model(
                 (Variable(image), Variable(instruction_idx), (tx, hx, cx))
             )
+
             prob = F.softmax(logit, dim=-1)
             log_prob = F.log_softmax(logit, dim=-1)
             entropy = -(log_prob * prob).sum(1)
@@ -138,7 +154,7 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path):
 
             observation, reward, truncated, terminated, _ = env.step(action)
             image = observation["image"]
-            image = torch.from_numpy(image).float()
+            image = torch.from_numpy(image).float().to(device)
 
             done = terminated or truncated
             done = (
@@ -150,8 +166,8 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path):
                 image = reset_dict["image"]
                 instruction_idx = reset_dict["instruction_idx"]
 
-                image = torch.from_numpy(image).float()
-                instruction_idx = torch.from_numpy(instruction_idx)
+                image = torch.from_numpy(image).float().to(device)
+                instruction_idx = torch.from_numpy(instruction_idx).to(device)
 
             values.append(value)
             log_probs.append(log_prob)
@@ -165,7 +181,7 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path):
 
         R = torch.zeros(1, 1)
         if not done:
-            tx = Variable(torch.from_numpy(np.array([episode_length])).long())
+            tx = Variable(torch.from_numpy(np.array([episode_length])).long()).to(device)
 
             value, _, _ = model(
                 (Variable(image), Variable(instruction_idx), (tx, hx, cx))
@@ -175,20 +191,24 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path):
         values.append(Variable(R))
         policy_loss = 0
         value_loss = 0
-        R = Variable(R)
+        R = Variable(R).to(device)
 
-        gae = torch.zeros(1, 1)
+        gae = torch.zeros(1, 1).to(device)
         for i in reversed(range(len(rewards))):
-            R = args.gamma * R + rewards[i]
+            reward = torch.tensor(rewards[i]).to(device) # TODO check if np.array(rewards) is faster
+            values = [value.item() if torch.is_tensor(value) else value for value in values]
+            values = torch.tensor(values).to(device)
+            R = args.gamma * R + reward
             advantage = R - values[i]
             value_loss = value_loss + 0.5 * advantage.pow(2)
 
             # Generalized Advantage Estimation
             delta_t = (
-                torch.tensor(rewards[i])
+                reward
                 + args.gamma * values[i + 1].data
                 - values[i].data
             )
+
             gae = gae * args.gamma * args.tau + delta_t
 
             policy_loss = (
@@ -225,14 +245,25 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path):
             p_losses = []
             v_losses = []
 
+            # checkpoint: save the model for rank 0
+            if rank == 0:
+                torch.save(
+                    {
+                        "model_state_dict": shared_model.state_dict(),
+                        "optimizer_state_dict": optimizer.state_dict(),
+                        "num_iters": num_iters,
+                    },
+                    checkpoint_file_path,
+                )
+
         (policy_loss + 0.5 * value_loss).backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 40)
 
-        ensure_shared_grads(model, shared_model)
+        ensure_shared_grads(model, shared_model, device)
         optimizer.step()
 
 
-def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict):
+def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict, checkpoint_file_path):
     # TODO pull from the curriculum all relevant information
     threshold_reward = 0.5  # TODO set this to a reasonable value
     curriculum_dir_path = Path(curriculum_dir_path)
