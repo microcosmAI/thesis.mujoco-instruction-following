@@ -26,7 +26,7 @@ parser.add_argument(
     "-l",
     "--max-episode-length",
     type=int,
-    default=1000,
+    default=2000, # TODO experiment a bit with this value
     help="maximum length of an episode (default: 1000)",
 )
 parser.add_argument(
@@ -35,12 +35,6 @@ parser.add_argument(
     default=0,
     help="""Default reward at each time step (default: 0,
                     change to -0.005 to encourage shorter paths)""",
-)
-parser.add_argument(
-    "--frame-width", type=int, default=300, help="Frame width (default: 300)"
-)
-parser.add_argument(
-    "--frame-height", type=int, default=168, help="Frame height (default: 168)"
 )
 parser.add_argument(
     "-v",
@@ -57,48 +51,21 @@ parser.add_argument(
     help="""Sleep between frames for better
                     visualization (default: 0)""",
 )
-parser.add_argument(
-    "--all-instr-file",
-    type=str,  # TODO adapt to new dataset
-    default="data/instructions_all.json",
-    help="""All instructions file
-                    (default: data/instructions_all.json)""",
-)
-parser.add_argument(
-    "--train-instr-file",
-    type=str,
-    default="data/instructions_train.json",
-    help="""Train instructions file
-                    (default: data/instructions_train.json)""",
-)
-parser.add_argument(
-    "--test-instr-file",
-    type=str,
-    default="data/instructions_test.json",
-    help="""Test instructions file
-                    (default: data/instructions_test.json)""",
-)
-parser.add_argument(
-    "--object-size-file",
-    type=str,  # TODO make sure size modification gets added to xml generation
-    default="data/object_sizes.txt",
-    help="Object size file (default: data/object_sizes.txt)",
-)
 
 # A3C arguments
 parser.add_argument(
     "--lr",
     type=float,
-    default=0.001,
+    default=0.0006,
     metavar="LR",
     help="learning rate (default: 0.001)",
 )
 parser.add_argument(
     "--gamma",
     type=float,
-    default=0.99,
+    default=0.9996,
     metavar="G",
-    help="discount factor for rewards (default: 0.99)",
+    help="discount factor for rewards (default: 0.9995)",
 )
 parser.add_argument(
     "--tau",
@@ -114,14 +81,14 @@ parser.add_argument(
     "-n",
     "--num-processes",
     type=int,
-    default=6,
+    default=1,
     metavar="N",
     help="how many training processes to use (default: 4)",
 )
 parser.add_argument(
     "--num-steps",
     type=int,
-    default=20,
+    default=800,
     metavar="NS",
     help="number of forward steps in A3C (default: 20)",
 )
@@ -149,53 +116,53 @@ parser.add_argument(
 if __name__ == "__main__":
 
     args = parser.parse_args()
-
-    if args.evaluate == 0:
-        args.use_train_instructions = 1
-        log_filename = "train.log"
-    elif args.evaluate == 1:
-        args.use_train_instructions = 1
-        args.num_processes = 0
-        log_filename = "test-MT.log"
-    elif args.evaluate == 2:
-        args.use_train_instructions = 0
-        args.num_processes = 0
-        log_filename = "test-ZSL.log"
-    else:
-        assert False, "Invalid evaluation type"
-
     curriculum_dir_path = Path.cwd() / "data" / "curriculum"
     curriculum_dir_path.mkdir(parents=True, exist_ok=True)
     checkpoint_dir = Path.cwd() / "data" / "checkpoints"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_file_path = checkpoint_dir / "model_checkpoint.pth"
-    test_dir_path = Path.cwd() / "data" / "test-set"
+    #test_dir_path = Path.cwd() / "data" / "test-set" 
 
-    # env = grounding_env.GroundingEnv(args)
-    # args.input_size = len(env.word_to_idx)
     word_to_idx = ip.get_word_to_idx_from_curriculum_dir(
         curriculum_dir_path=curriculum_dir_path
     )
     args.input_size = len(word_to_idx)
 
+    if args.evaluate == 0:
+        args.use_train_instructions = 1
+        log_filename = "train.log"
+        use_test = False
+    elif args.evaluate == 1:
+        args.use_train_instructions = 1 # TODO remove obsolete
+        args.num_processes = 0
+        curriculum_dir_path = Path.cwd() / "data" / "test-set" 
+        curriculum_dir_path.mkdir(parents=True, exist_ok=True)
+        log_filename = "test-MT.log"
+        use_test = True
+    elif args.evaluate == 2:
+        args.use_train_instructions = 0
+        args.num_processes = 0
+        curriculum_dir_path = Path.cwd() / "data" / "test-set" 
+        curriculum_dir_path.mkdir(parents=True, exist_ok=True)
+        log_filename = "test-ZSL.log"
+        use_test = True
+    else:
+        assert False, "Invalid evaluation type"
 
-    xml_file_path = "" # set in train()
-    json_files = ""
+
     agents = ["agent/"]
 
-
-
     config_dict = {
-        "xmlPath": xml_file_path,
-        "infoJson": json_files,
+        "xmlPath": "", # set in train() / test()
+        "infoJson": "",
         "agents": agents,
-        "rewardFunctions": [target_reward, collision_reward], 
-        "doneFunctions": [target_done, border_done],
+        "rewardFunctions": [target_reward, distractor_reward, collision_reward], 
+        "doneFunctions": [target_done, distractor_done, border_done],
         "skipFrames": 5,
         "environmentDynamics": [Reward],
         "freeJoint": True,
         "renderMode": False,
-        "maxSteps": 4096 * 16,
+        "maxSteps":  args.max_episode_length * args.num_processes, 
         "agentCameras": True,
         "tensorboard_writer": None,
         "sensorResolution": (300, 300), # NOTE may require half resolution on apple devices
@@ -208,9 +175,10 @@ if __name__ == "__main__":
     logging.basicConfig(filename=str(dump_location / log_filename), level=logging.INFO)
 
     #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")
+    device = torch.device("cpu") # debugging 
     print(f"Shared model using device: {device}")
-    shared_model = A3C_LSTM_GA(args, device).to(device)
+    shared_model = A3C_LSTM_GA(args, device)
+    shared_model.to(device)
 
     # Load the model
     if args.load != "0":
@@ -221,28 +189,20 @@ if __name__ == "__main__":
     shared_model.share_memory()
 
     processes = []
+    
+    # debugging
+    args.num_processes = 8
 
-    # Start the test thread
-    p = mp.Process(target=test, args=(args.num_processes, args, shared_model, config_dict, test_dir_path, checkpoint_file_path, device))
-    p.start()
-    processes.append(p)
+    if use_test:
+        print("Starting test process ...")
+        p = mp.Process(target=test, args=(args.num_processes, args, shared_model, config_dict, curriculum_dir_path, checkpoint_file_path, device))
+        p.start()
+        processes.append(p)
+    else:
+        for rank in range(args.num_processes):
+            p = mp.Process(target=train_curriculum, args=(curriculum_dir_path, rank, args, shared_model, config_dict, checkpoint_file_path, device))
+            p.start()
+            processes.append(p)
 
-    # Debugging: start a single training thread
-    #print("Starting a single training thread")
-    #train_curriculum(
-    #    curriculum_dir_path=curriculum_dir_path,
-    #    rank=0,
-    #    args=args,
-    #    shared_model=shared_model,
-    #    config_dict=config_dict,
-    #)
-    #print("Finished training")
-
-    # Start the training thread(s)
-    #for rank in range(args.num_processes):
-    #    p = mp.Process(target=train_curriculum, args=(curriculum_dir_path, rank, args, shared_model, config_dict, checkpoint_file_path))
-    #    p.start()
-    #    processes.append(p)#
-
-    #for p in processes:
-    #    p.join()
+    for p in processes:
+        p.join()

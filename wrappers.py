@@ -5,17 +5,28 @@ import instruction_processing as ip
 import cv2
 from pathlib import Path
 
+
 class ObservationWrapper(gym.Wrapper):
     def __init__(
-        self, env, camera, curriculum_directory, threshold_reward, make_env, config_dict
+        self,
+        env,
+        camera,
+        curriculum_directory,
+        threshold_reward,
+        make_env,
+        config_dict,
+        test_mode=False,
     ):
         super().__init__(env)
         self.camera = camera
         self.image_step = 0
-        self.current_level = 0
+        self.current_level = 0 # TODO remove level logic from wrapper
         self.threshold_reward = threshold_reward  # TODO set this to a reasonable value
         self.curriculum_directory = curriculum_directory
         self.config_dict = config_dict
+        self.test_mode = (
+            test_mode  # in test mode, don't get the instruction idx from a curriculum
+        )
         self.max_instr_length = ip.get_max_instruction_length_from_curriculum_dir(
             self.curriculum_directory
         )
@@ -36,7 +47,7 @@ class ObservationWrapper(gym.Wrapper):
         self.observation_space = gym.spaces.Dict(
             {
                 "image": gym.spaces.Box(
-                    low=0, high=255, shape=image.shape, dtype=np.float32
+                    low=0, high=1, shape=image.shape, dtype=np.float32
                 ),
                 "instruction_idx": gym.spaces.Box(
                     low=0, high=255, shape=(1, self.max_instr_length), dtype=np.int64
@@ -45,10 +56,6 @@ class ObservationWrapper(gym.Wrapper):
         )
 
         self.make_env = make_env
-
-    def convert_filename_to_instruction(self, filename):
-        filename = filename.split("/")[-1]
-        return filename.split(".")[0].replace("_", " ")
 
     def get_image(self, env, camera):
         image = env.unwrapped.environment.get_camera_data(camera)
@@ -77,11 +84,26 @@ class ObservationWrapper(gym.Wrapper):
 
         return image
 
+    def write_image(self, image, interval):
+        images_dir = Path.cwd() / "data" / "images"
+        images_dir.mkdir(parents=True, exist_ok=True)
+
+        self.image_step += 1
+        if (self.image_step - 900) % interval == 0:
+            image_path = images_dir / f"{self.image_step}.png"
+
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # convert from BGR to RGB
+            cv2.imwrite(str(image_path), image)
+            print(f"Saved image {self.image_step} to {str(image_path)}")
+
+    def convert_filename_to_instruction(self, filename):
+        filename = filename.split("/")[-1]
+        return filename.split(".")[0].replace("-", " ")
+
     def set_instruction_idx(self, env):
         instruction = self.convert_filename_to_instruction(
             env.unwrapped.environment.xml_path
         )
-        
         instruction_idx = []
         for word in instruction.split(" "):
             instruction_idx.append(self.word_to_idx[word])
@@ -94,22 +116,11 @@ class ObservationWrapper(gym.Wrapper):
         instruction_idx = torch.from_numpy(instruction_idx).view(1, -1)
         self.current_instruction_idx = instruction_idx
 
-    def write_image(self, image, interval):
-        images_dir = Path.cwd() / "data" / "images"
-        images_dir.mkdir(parents=True, exist_ok=True)
-
-        self.image_step += 1
-        if (self.image_step-900) % interval == 0:
-            image_path = images_dir / f"{self.image_step}.png"
-
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # convert from BGR to RGB
-            cv2.imwrite(str(image_path), image)
-            print(f"Saved image {self.image_step} to {str(image_path)}")
-
-
     def map_discrete_to_continuous(self, action):
-        factor = 0.9
-        rot_factor = 1.0 # different factor for rotation actions (3rd value in action vector)
+        factor = 1.1
+        rot_factor = (
+            1.0  # factor for rotation actions (3rd value in action vector)
+        )
 
         """
         # for 7 discrete actions
@@ -130,20 +141,36 @@ class ObservationWrapper(gym.Wrapper):
         else:
             raise ValueError("Invalid action")
         """
-        #return np.array([1.0, 0.0, 0.0], dtype=np.float32)  # for 1 action / debugging
+        # return np.array([1.0, 0.0, 0.0], dtype=np.float32)  # for 1 action / debugging
 
+        """
         # for 5 discrete actions
-        if action == 0: # forward
+        if action == 0:  # forward
             return np.array([1.0 * factor, 0.0, 0.0], dtype=np.float32)
-        elif action == 1: # rotation 1
-            return np.array([0.0, 0.0, 1.0*rot_factor], dtype=np.float32)
-        elif action == 2: # rotation 2
-            return np.array([0.0, 0.0, -1.0*rot_factor], dtype=np.float32)
-        elif action == 3: # sideways 1
-            return np.array([0.0, 1.0*factor, 0.0], dtype=np.float32)
-        elif action == 4: # sideways 2
-            return np.array([0.0, -1.0*factor, 0.0], dtype=np.float32)
-        
+        elif action == 1:  # rotation 1
+            return np.array([0.0, 0.0, 1.0 * rot_factor], dtype=np.float32)
+        elif action == 2:  # rotation 2
+            return np.array([0.0, 0.0, -1.0 * rot_factor], dtype=np.float32)
+        elif action == 3:  # sideways 1
+            return np.array([0.0, 1.0 * factor, 0.0], dtype=np.float32)
+        elif action == 4:  # sideways 2
+            return np.array([0.0, -1.0 * factor, 0.0], dtype=np.float32)
+        """
+
+        # for 6 discrete actions
+        if action == 0:  # forward
+            return np.array([1.0 * factor, 0.0, 0.0], dtype=np.float32)
+        elif action == 1:  # backward
+            return np.array([-1.0 * factor, 0.0, 0.0], dtype=np.float32)
+        elif action == 2:  # rotation 1
+            return np.array([0.0, 0.0, 1.0 * rot_factor], dtype=np.float32)
+        elif action == 3:  # rotation 2
+            return np.array([0.0, 0.0, -1.0 * rot_factor], dtype=np.float32)
+        elif action == 4:  # sideways 1
+            return np.array([0.0, 1.0 * factor, 0.0], dtype=np.float32)
+        elif action == 5:  # sideways 2
+            return np.array([0.0, -1.0 * factor, 0.0], dtype=np.float32)
+
         # for 3 discrete actions (forward and both sides)
         """
         if action == 0: # forward
@@ -153,7 +180,7 @@ class ObservationWrapper(gym.Wrapper):
         elif action == 2: # sideways 2
             return np.array([0.0, -1.0*factor, 0.0], dtype=np.float32)
         """
-        
+
     def step(self, action):
         # translate action
         action = self.map_discrete_to_continuous(action)

@@ -21,9 +21,8 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
 
     # Define the fixed structure for the yml file
     yml_data = {
-        # Environment size is fixed at 100x100
         "Environment": {
-            "size_range": [16, 16],
+            "size_range": [12, 12],
             "Style": [{"pretty_mode": False}],
             "Borders": [
                 {"xml_name": "Border.xml"},
@@ -52,7 +51,7 @@ def write_yml_entry(entry, yml_output_dir_path, object_pool):
                         {"z_rotation_range": [270, 271]},
                         {"tags": ["Agent"]},
                         {
-                            "coordinates": [[20, 50, 0.5]]
+                            "coordinates": [[42, 50, 0.5]]
                         },  # remove to place randomly in area1
                     ],
                 },

@@ -62,7 +62,7 @@ class A3C_LSTM_GA(torch.nn.Module):
         self.linear = nn.Linear(64 * 8 * 17, 256)
         self.lstm = nn.LSTMCell(256, 256)
         self.critic_linear = nn.Linear(256 + self.time_emb_dim, 1)
-        self.actor_linear = nn.Linear(256 + self.time_emb_dim, 5)
+        self.actor_linear = nn.Linear(256 + self.time_emb_dim, 6)
 
         # Initializing weights
         self.apply(weights_init)

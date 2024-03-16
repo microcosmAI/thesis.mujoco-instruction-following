@@ -22,8 +22,7 @@ def make_env(config_dict, curriculum_dir_path):
         env = GymnasiumWrapper(env, config_dict["agents"][0])
         env = gym.wrappers.RecordEpisodeStatistics(env)
         #env = gym.wrappers.ClipAction(env)
-        env = gym.wrappers.NormalizeObservation(env)
-        # env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
+        #env = gym.wrappers.NormalizeObservation(env)
         env = gym.wrappers.NormalizeReward(env)
         env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
         env = ObservationWrapper(
@@ -61,19 +60,17 @@ def ensure_shared_grads(model, shared_model, device):
 
 
 
-def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path, checkpoint_file_path):
-    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")   
+def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path, checkpoint_file_path, device):  
     torch.manual_seed(args.seed + rank)
 
     # make env as async vector env
     env = gym.vector.AsyncVectorEnv(
-        [make_env(config_dict, curriculum_dir_path) for _ in range(1)], context="spawn", shared_memory=False
+        [make_env(config_dict, curriculum_dir_path) for _ in range(1)], context="spawn", shared_memory=True # TODO true
     )
 
     _ = env.reset()
 
-    model = A3C_LSTM_GA(args, device).to(device)
+    model = A3C_LSTM_GA(args, device).to(device) # TODO pass device into function
 
     # if args.load != "0":
     #    print(str(rank) + " Loading model ... " + args.load)
@@ -263,7 +260,7 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path, ch
         optimizer.step()
 
 
-def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict, checkpoint_file_path):
+def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict, checkpoint_file_path, device):
     # TODO pull from the curriculum all relevant information
     threshold_reward = 0.5  # TODO set this to a reasonable value
     curriculum_dir_path = Path(curriculum_dir_path)
@@ -311,8 +308,9 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict,
     #   file_path.replace(".xml", ".json") for file_path in current_file_paths
     #]
 
+
     writer = SummaryWriter()
-    train(rank, args, shared_model, config_dict, writer, curriculum_dir_path)
+    train(rank, args, shared_model, config_dict, writer, curriculum_dir_path, checkpoint_file_path, device)
     writer.close()
 
     pass

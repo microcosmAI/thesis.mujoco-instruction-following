@@ -44,7 +44,7 @@ def get_word_to_idx_from_dir(instructions_dir_path):
     )
 
     for filename in filenames:
-        prompt = filename.split(".")[0].replace("_", " ")
+        prompt = filename.split(".")[0].replace("-", " ")
         for word in prompt.lower().split(" "):
             if word not in word_to_idx:
                 word_to_idx[word] = len(word_to_idx)
@@ -69,7 +69,7 @@ def get_max_instruction_length_from_dir(instructions_dir_path):
     )
 
     for filename in filenames:
-        prompt = filename.split(".")[0].replace("_", " ")
+        prompt = filename.split(".")[0].replace("-", " ")
         prompt_length = len(prompt.split(" "))
         if prompt_length > max_instruction_length:
             max_instruction_length = prompt_length

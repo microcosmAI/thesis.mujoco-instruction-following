@@ -64,6 +64,7 @@ def pull_test_set(curriculum_dir_path, test_set_dir_path, test_set_ratio):
     random.shuffle(highest_level_files)
     test_set_files = highest_level_files[:amount_of_files_to_remove]
     test_set_files += [file.replace(".xml", ".json") for file in test_set_files]
+    test_set_files += [file.replace(".xml", ".yml") for file in test_set_files]
 
     # move files
     for file in test_set_files:
@@ -88,7 +89,7 @@ def main():
     colorset_dir_path = cwd / "data" / "color-data"
     prompts_file_path = cwd / "data" / "prompt-data" / "prompts.json"
     curriculum_dir_path = cwd / "data" / "curriculum"
-    test_set_dir_path = cwd / "data" / "test-set"
+    test_set_dir_path = cwd / "data" / "test-set" / "level0"
     xml_object_dir_path = cwd / "data" / "objects"
     instr_file_path = cwd / "data" / "prompt-data" / "instructions.txt"
 
@@ -96,9 +97,9 @@ def main():
 
     instr_types = ["approach", "avoid"]
     size_modifiers = [
-        {"name": "large", "factor": 2},
+        {"name": "large", "factor": 1},
         {"name": "small", "factor": 0.5},
-        {"name": "huge", "factor": 4},
+        {"name": "huge", "factor": 2},
         {"name": "tiny", "factor": 0.25},
     ]
     test_set_ratio = (

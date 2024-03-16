@@ -1,14 +1,11 @@
-#import numpy as np
-#import torch
-#import torch.nn.functional as F
+import numpy as np
+import torch
+import torch.nn.functional as F
 import time
-#import logging
-##
-#import env as grounding_env
-#from models import A3C_LSTM_GA
+from models import A3C_LSTM_GA
 
-#from torch.autograd import Variable
-#from constants import *
+from torch.autograd import Variable
+from constants import *
 
 from pathlib import Path
 import gymnasium as gym
@@ -21,7 +18,7 @@ import logging
 from MuJoCo_Gym.mujoco_rl import MuJoCoRL
 from MuJoCo_Gym.wrappers import GymnasiumWrapper
 
-from models import *
+#from models import *
 from wrappers import ObservationWrapper
 from dynamics import *
 
@@ -47,51 +44,59 @@ def make_env(config_dict, curriculum_dir_path):
         )
         env.action_space.seed(1)
         env.observation_space.seed(1)
-
+        print("Env created ...")
         return env
+    return thunk
 
 
 def test(rank, args, shared_model, config_dict, test_dir_path, checkpoint_file_path, device):
     torch.manual_seed(args.seed + rank)
 
-    print("Starting test thread ...")
     # for debugging: pull one file from test_dir_path
-    test_file = list(test_dir_path.iterdir())[0]
-    test_json = test_file.with_suffix(".json")
-    test_xml = test_file.with_suffix(".xml")
+    test_file_path = Path(test_dir_path / "level0")
+    test_file_path = list(test_file_path.iterdir())[0]
+   
+    # more debugging: set test_path to  C:\Users\Kamran\microcosm\instruction-following\data\curriculum\level0\advance-to-the-large-dust-apple.json
+    #test_file_path = Path("C:/Users/Kamran/microcosm/instruction-following/data/curriculum/level0/advance-to-the-large-dust-apple.json")
+    test_json = test_file_path.with_suffix(".json")
+    test_xml = test_file_path.with_suffix(".xml")
     config_dict["infoJson"] = str(test_json.as_posix())
     config_dict["xmlPath"] = str(test_xml.as_posix())
 
-    # print config dict
-    print("Config dict: ", config_dict)
+    config_dict["renderMode"] = True
 
-    #env = grounding_env.GroundingEnv(args)
+    test_dir_path = Path(test_dir_path)
+    print("Generating Env with xml file: " + str(test_xml))
     env = gym.vector.AsyncVectorEnv(
         [make_env(config_dict, test_dir_path) for _ in range(1)], context="spawn", shared_memory=False
     )
-    _ = env.reset() # TODO check if necessary
 
-    model = A3C_LSTM_GA(args).to(device)
+    #_ = env.reset() # TODO check if necessary
+
+    model = A3C_LSTM_GA(args, device).to(device)
 
     #if (args.load != "0"):
     #    print("Loading model ... "+args.load)
     #    model.load_state_dict(
     #        torch.load(args.load, map_location=lambda storage, loc: storage))
 
-    if args.load != "0":
-        print("Loading model from ... " + str(checkpoint_file_path))
-        checkpoint = torch.load(checkpoint_file_path, map_location=lambda storage, loc: storage)
-        model.load_state_dict(checkpoint["model_state_dict"])
+    print("Loading model from ... " + str(checkpoint_file_path))
+    checkpoint = torch.load(checkpoint_file_path, map_location=lambda storage, loc: storage)
+    model.load_state_dict(checkpoint["model_state_dict"])
 
     model.eval()
 
     observation_dict, _ = env.reset()
     image = observation_dict["image"]
+    image = torch.from_numpy(image).float().to(device)
     instruction_idx = observation_dict["instruction_idx"]
+    instruction_idx = torch.from_numpy(instruction_idx).to(device)
 
     # Print instruction while evaluating and visualizing
-    if args.evaluate != 0 and args.visualize == 1:
-        print("Instruction idx: {} ".format(instruction_idx)) # TODO convert to words
+    #if args.evaluate != 0 and args.visualize == 1:
+    #    print("Instruction idx: {} ".format(instruction_idx)) # TODO convert to words
+
+    # TODO print instruction in words here
 
     # Getting indices of the words in the instruction
     #instruction_idx = []
@@ -101,8 +106,6 @@ def test(rank, args, shared_model, config_dict, test_dir_path, checkpoint_file_p
 
     #image = torch.from_numpy(image).float()/255.0
     #instruction_idx = torch.from_numpy(instruction_idx).view(1, -1)
-    image = torch.from_numpy(image).float().to(device)
-    instruction_idx = torch.from_numpy(instruction_idx).to(device)
 
 
     reward_sum = 0
@@ -117,7 +120,7 @@ def test(rank, args, shared_model, config_dict, test_dir_path, checkpoint_file_p
     num_episode = 0
     best_reward = 0.0
     test_freq = 50
-    while True:
+    """while True:
         episode_length += 1
         if done:
             if (args.evaluate == 0):
@@ -133,12 +136,37 @@ def test(rank, args, shared_model, config_dict, test_dir_path, checkpoint_file_p
                       volatile=True).to(device)
 
         value, logit, (hx, cx) = model(
-                (Variable(image.unsqueeze(0), volatile=True),
+                (Variable(image, volatile=True),
                  Variable(instruction_idx, volatile=True), (tx, hx, cx)))
         prob = F.softmax(logit)
-        action = prob.max(1)[1].data.numpy()
+        action = prob.max(1)[1].data.numpy()""" # volatile deprecated
+    
+    while True:
+        episode_length += 1
+        if done:
+            #if (args.evaluate == 0):
+            #    model.load_state_dict(shared_model.state_dict())
 
-        observation, reward, truncated, terminated, _ = env.step(action[0])
+            with torch.no_grad():
+                cx = torch.zeros(1, 256).to(device)
+                hx = torch.zeros(1, 256).to(device)
+        else:
+            with torch.no_grad():
+                cx = cx.data.to(device)
+                hx = hx.data.to(device)
+
+        with torch.no_grad():
+            tx = torch.from_numpy(np.array([episode_length])).long().to(device)
+
+        with torch.no_grad():
+            value, logit, (hx, cx) = model(
+                    (image, instruction_idx, (tx, hx, cx)))
+            prob = F.softmax(logit, dim=1)
+            action = prob.max(1)[1].numpy()
+
+        observation_dict, reward, truncated, terminated, _ = env.step([action[0]])
+        image = observation_dict["image"]
+        image = torch.from_numpy(image).float().to(device)
 
         done = terminated or truncated
         done = (
@@ -184,9 +212,12 @@ def test(rank, args, shared_model, config_dict, test_dir_path, checkpoint_file_p
                 episode_length_list = []
             reward_sum = 0
             episode_length = 0
-            reset_dict, _ = env.reset()
-            image = reset_dict["image"]
-            instruction_idx = reset_dict["instruction_idx"]
+            observation_dict, _ = env.reset()
+            image = observation_dict["image"]
+            image = torch.from_numpy(image).float().to(device)
+            instruction_idx = observation_dict["instruction_idx"]
+            instruction_idx = torch.from_numpy(instruction_idx).to(device)
+
             # Print instruction while evaluating and visualizing
             if args.evaluate != 0 and args.visualize == 1:
                 print("Instruction idx: {} ".format(instruction_idx)) # TODO convert to words
@@ -197,5 +228,3 @@ def test(rank, args, shared_model, config_dict, test_dir_path, checkpoint_file_p
            #     instruction_idx.append(env.word_to_idx[word])
             #instruction_idx = np.array(instruction_idx)
             #instruction_idx = torch.from_numpy(instruction_idx).view(1, -1)
-
-        image = torch.from_numpy(image).float()/255.0
