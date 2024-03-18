@@ -1,4 +1,4 @@
-<mujoco>
+<mujoco model="cylinder">
     <worldbody>
         <body name="cylinder" pos="0 0 1">
             <geom type="cylinder" size="0.1 0.02" rgba="0 0 1 1"/>

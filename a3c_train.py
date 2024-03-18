@@ -21,10 +21,9 @@ def make_env(config_dict, curriculum_dir_path):
         env = MuJoCoRL(config_dict=config_dict)
         env = GymnasiumWrapper(env, config_dict["agents"][0])
         env = gym.wrappers.RecordEpisodeStatistics(env)
-        #env = gym.wrappers.ClipAction(env)
-        #env = gym.wrappers.NormalizeObservation(env)
+        env = gym.wrappers.NormalizeObservation(env)
         env = gym.wrappers.NormalizeReward(env)
-        env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
+        env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 20))
         env = ObservationWrapper(
             env,
             camera="agent/boxagent_camera",
@@ -44,7 +43,7 @@ def make_env(config_dict, curriculum_dir_path):
 def ensure_shared_grads(model, shared_model, device):
     """
     Ensures that the gradients of the shared model are synchronized with the gradients of the local model
-    
+
     Args:
         model (torch.nn.Module): The local model whose gradients need to be synchronized
         shared_model (torch.nn.Module): The shared model whose gradients will be updated
@@ -59,18 +58,29 @@ def ensure_shared_grads(model, shared_model, device):
             shared_param._grad = shared_param._grad.to(device)
 
 
-
-def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path, checkpoint_file_path, device):  
+def train(
+    rank,
+    args,
+    shared_model,
+    config_dict,
+    writer,
+    curriculum_dir_path,
+    checkpoint_file_path,
+    device,
+    threshold_accuracy=0.9,
+):
     torch.manual_seed(args.seed + rank)
 
     # make env as async vector env
     env = gym.vector.AsyncVectorEnv(
-        [make_env(config_dict, curriculum_dir_path) for _ in range(1)], context="spawn", shared_memory=True # TODO true
+        [make_env(config_dict, curriculum_dir_path) for _ in range(1)],
+        context="spawn",
+        shared_memory=True,  # TODO true
     )
 
     _ = env.reset()
 
-    model = A3C_LSTM_GA(args, device).to(device) # TODO pass device into function
+    model = A3C_LSTM_GA(args, device).to(device)  # TODO pass device into function
 
     # if args.load != "0":
     #    print(str(rank) + " Loading model ... " + args.load)
@@ -79,12 +89,11 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path, ch
     #    )
 
     if args.load != "0":  # TODO fix this
-        # print(str(rank) + " Loading model ... " + args.load)
-        # checkpoint = torch.load(args.load)
-        # model.load_state_dict(checkpoint["model_state_dict"])
-        # optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        # num_iters = checkpoint["num_iters"]
-        # print("Checkpoint loaded - ", num_iters, "K iters")
+        print(str(rank) + " Loading model ... " + args.load)
+        checkpoint = torch.load(args.load)
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        num_iters = checkpoint["num_iters"]
         pass
 
     model.train()
@@ -105,6 +114,10 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path, ch
 
     episode_length = 0
     episode_lengths = []  # NOTE added
+    accuracies = []
+    avg_accuracy = 0  # sliding window
+    avg_accuracy_window_size = 10  # nr of episodes
+    threshold_reached = False
     num_iters = 0
     first_iter = True
 
@@ -133,7 +146,9 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path, ch
 
         for step in range(args.num_steps):
             episode_length += 1
-            tx = Variable(torch.from_numpy(np.array([episode_length])).long()).to(device)
+            tx = Variable(torch.from_numpy(np.array([episode_length])).long()).to(
+                device
+            )
 
             value, logit, (hx, cx) = model(
                 (Variable(image), Variable(instruction_idx), (tx, hx, cx))
@@ -150,6 +165,7 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path, ch
             log_prob = log_prob.gather(1, Variable(action))
 
             observation, reward, truncated, terminated, _ = env.step(action)
+
             image = observation["image"]
             image = torch.from_numpy(image).float().to(device)
 
@@ -171,14 +187,29 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path, ch
             rewards.append(reward)
 
             if done:
-                track_tensorboard_metrics(
+                accuracies.append(track_metrics(
                     writer, p_losses, rewards, episode_lengths
-                )
+                ))
+                if len(accuracies) > avg_accuracy_window_size:
+                    avg_accuracy = (
+                        sum(accuracies[-avg_accuracy_window_size:])
+                        / avg_accuracy_window_size
+                    )
+                    print("Average accuracy: ", avg_accuracy)
+                    logging.info("Average accuracy: " + str(avg_accuracy))
+
+                if avg_accuracy > threshold_accuracy:
+                    threshold_reached = True
+                    print("Threshold accuracy reached")
+                    break
+
                 break
 
         R = torch.zeros(1, 1)
         if not done:
-            tx = Variable(torch.from_numpy(np.array([episode_length])).long()).to(device)
+            tx = Variable(torch.from_numpy(np.array([episode_length])).long()).to(
+                device
+            )
 
             value, _, _ = model(
                 (Variable(image), Variable(instruction_idx), (tx, hx, cx))
@@ -192,19 +223,19 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path, ch
 
         gae = torch.zeros(1, 1).to(device)
         for i in reversed(range(len(rewards))):
-            reward = torch.tensor(rewards[i]).to(device) # TODO check if np.array(rewards) is faster
-            values = [value.item() if torch.is_tensor(value) else value for value in values]
+            reward = torch.tensor(rewards[i]).to(
+                device
+            )  # TODO check if np.array(rewards) is faster
+            values = [
+                value.item() if torch.is_tensor(value) else value for value in values
+            ]
             values = torch.tensor(values).to(device)
             R = args.gamma * R + reward
             advantage = R - values[i]
             value_loss = value_loss + 0.5 * advantage.pow(2)
 
             # Generalized Advantage Estimation
-            delta_t = (
-                reward
-                + args.gamma * values[i + 1].data
-                - values[i].data
-            )
+            delta_t = reward + args.gamma * values[i + 1].data - values[i].data
 
             gae = gae * args.gamma * args.tau + delta_t
 
@@ -259,10 +290,21 @@ def train(rank, args, shared_model, config_dict, writer, curriculum_dir_path, ch
         ensure_shared_grads(model, shared_model, device)
         optimizer.step()
 
+        if threshold_reached:
+            break
 
-def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict, checkpoint_file_path, device):
+
+def train_curriculum(
+    curriculum_dir_path,
+    rank,
+    args,
+    shared_model,
+    config_dict,
+    checkpoint_file_path,
+    device,
+):
     # TODO pull from the curriculum all relevant information
-    threshold_reward = 0.5  # TODO set this to a reasonable value
+    threshold_accuracy = 0.8  # TODO set this to a reasonable value
     curriculum_dir_path = Path(curriculum_dir_path)
     level_dir_paths = sorted(
         [
@@ -274,59 +316,69 @@ def train_curriculum(curriculum_dir_path, rank, args, shared_model, config_dict,
     current_reward = 0
     current_level = 0
 
-    # curriculum loop # TODO actually make it increase levels
-    # for current_level in progressbar(range(len(level_dir_paths))):
-    #    while current_reward < threshold_reward:
-    # pull all xml files from the current level directory
-    current_level_dir_path = Path(level_dir_paths[current_level])
-
-    current_file_paths = [
-        str(current_level_dir_path / file)
-        for file in current_level_dir_path.iterdir()
-        if str(file).endswith(".xml")
-    ]
-
-    # debugging TODO remove / rewrite this whole block
-    current_file_paths = current_file_paths[0]
-    config_dict["infoJson"] = current_file_paths.replace(".xml", ".json")
-    #config_dict["renderMode"] = True
-    current_file_paths = Path(current_file_paths).as_posix()
-    config_dict["infoJson"] = Path(config_dict["infoJson"]).as_posix()
-
-    current_file_paths = str(current_file_paths)
-    config_dict["infoJson"] = str(config_dict["infoJson"])
-    
-    print(
-        "Training on level ", current_level, "with files:", current_file_paths, " / ", config_dict["infoJson"]
-    )  # debugging
-
-
-    # Generate a new environment
-    config_dict["xmlPath"] = current_file_paths
-    # go over current_file_paths, replace each .xml ending with .json
-    #config_dict["infoJson"] = [
-    #   file_path.replace(".xml", ".json") for file_path in current_file_paths
-    #]
-
-
     writer = SummaryWriter()
-    train(rank, args, shared_model, config_dict, writer, curriculum_dir_path, checkpoint_file_path, device)
+
+    # curriculum loop # TODO actually make it increase levels
+    for current_level in range(len(level_dir_paths)):
+
+        if current_level != 0:
+            args.load = "1"
+
+        # pull all xml files from the current level directory
+        current_level_dir_path = Path(level_dir_paths[current_level])
+
+        xml_files = [
+            file for file in current_level_dir_path.iterdir() if file.suffix == ".xml"
+        ]
+        json_files = [
+            file.with_suffix(".json") for file in xml_files
+        ]  # NOTE not filtered from dir, to exclude prompts.json
+        config_dict["xmlPath"] = [str(file.as_posix()) for file in xml_files]
+        config_dict["infoJson"] = [str(file.as_posix()) for file in json_files]
+
+        print(
+            "Training on level ",
+            current_level,
+            "with files:",
+            xml_files,
+            " / ",
+            config_dict["infoJson"],
+        )  # debugging
+
+        train(
+            rank,
+            args,
+            shared_model,
+            config_dict,
+            writer,
+            curriculum_dir_path,
+            checkpoint_file_path,
+            device,
+            threshold_accuracy,
+        )
+        writer.close()
+
+        pass
+
     writer.close()
 
-    pass
 
-
-def track_tensorboard_metrics(writer, p_losses, rewards, episode_lengths):
+def track_metrics(writer, p_losses, rewards, episode_lengths):
 
     if episode_lengths:
         total_steps = sum(episode_lengths)
-        print(total_steps/1000, "K steps")
+        print(total_steps / 1000, "K steps")
 
         total_reward = sum(rewards)
         avg_reward = total_reward / len(rewards)
         median_reward = np.median(rewards)
         max_reward = max(rewards)
         min_reward = min(rewards)
+
+        if max_reward > 1:
+            accuracy = 1
+        else:
+            accuracy = 0
 
         if len(p_losses) == 0:
             p_losses.append(0)
@@ -352,3 +404,8 @@ def track_tensorboard_metrics(writer, p_losses, rewards, episode_lengths):
         writer.add_scalar("Min Episode Length", min_episode_length, total_steps)
 
         writer.flush()
+
+        return accuracy
+    
+    else:
+        return 0

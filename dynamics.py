@@ -141,7 +141,7 @@ def distractor_reward(mujoco_gym, agent):
 
     for distractor in distractors:
         if mujoco_gym.collision(distractor, agent + "boxagent_geom"):
-            print("DISTRACTOR - debug reward:", mujoco_gym.data_store["debug_reward"])
+            print("distractor-reward", distractor)
             mujoco_gym.data_store["debug_reward"] = 0
             reward = -0.5
             break
@@ -171,10 +171,10 @@ def target_done(mujoco_gym, agent):
 
     for target in targets:
         if mujoco_gym.collision(target, agent + "boxagent_geom"):
+            print("target-done", target)
             return True
 
-        else:
-            return False
+    return False
 
 
 def distractor_done(mujoco_gym, agent):
@@ -183,10 +183,10 @@ def distractor_done(mujoco_gym, agent):
 
     for distractor in distractors:
         if mujoco_gym.collision(distractor, agent + "boxagent_geom"):
+            print("distractor-done", distractor)
             return True
 
-        else:
-            return False
+    return False
 
 
 def border_done(mujoco_gym, agent):
@@ -197,5 +197,7 @@ def border_done(mujoco_gym, agent):
         "border_3/border_geom",
     ]:
         if mujoco_gym.collision(border, "agent/boxagent_geom"):
+            print("border-done", border)
             return True
+        
     return False

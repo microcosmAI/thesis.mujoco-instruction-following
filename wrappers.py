@@ -20,7 +20,7 @@ class ObservationWrapper(gym.Wrapper):
         super().__init__(env)
         self.camera = camera
         self.image_step = 0
-        self.current_level = 0 # TODO remove level logic from wrapper
+        self.current_level = 0  # TODO remove level logic from wrapper
         self.threshold_reward = threshold_reward  # TODO set this to a reasonable value
         self.curriculum_directory = curriculum_directory
         self.config_dict = config_dict
@@ -118,77 +118,31 @@ class ObservationWrapper(gym.Wrapper):
 
     def map_discrete_to_continuous(self, action):
         factor = 1.1
-        rot_factor = (
-            1.0  # factor for rotation actions (3rd value in action vector)
-        )
-
-        """
-        # for 7 discrete actions
-        if action == 0:  # action_1
-            return np.array([1.0 * factor, 0.0, 0.0], dtype=np.float32)
-        elif action == 1:  # inverse of action_1
-            return np.array([-1.0 * factor, 0.0, 0.0], dtype=np.float32)
-        elif action == 2:  # action_2
-            return np.array([0.0, 1.0 * factor, 0.0], dtype=np.float32)
-        elif action == 3:  # inverse of action_2
-            return np.array([0.0, -1.0 * factor, 0.0], dtype=np.float32)
-        elif action == 4:  # action_3
-            return np.array([0.0, 0.0, 1.0 * rot_factor], dtype=np.float32)
-        elif action == 5:  # inverse of action_3
-            return np.array([0.0, 0.0, -1.0 * rot_factor], dtype=np.float32)
-        elif action == 6:  # action_4
-            return np.array([0.0, 0.0, 0.0], dtype=np.float32)
-        else:
-            raise ValueError("Invalid action")
-        """
-        # return np.array([1.0, 0.0, 0.0], dtype=np.float32)  # for 1 action / debugging
-
-        """
-        # for 5 discrete actions
-        if action == 0:  # forward
-            return np.array([1.0 * factor, 0.0, 0.0], dtype=np.float32)
-        elif action == 1:  # rotation 1
-            return np.array([0.0, 0.0, 1.0 * rot_factor], dtype=np.float32)
-        elif action == 2:  # rotation 2
-            return np.array([0.0, 0.0, -1.0 * rot_factor], dtype=np.float32)
-        elif action == 3:  # sideways 1
-            return np.array([0.0, 1.0 * factor, 0.0], dtype=np.float32)
-        elif action == 4:  # sideways 2
-            return np.array([0.0, -1.0 * factor, 0.0], dtype=np.float32)
-        """
+        rot_factor = 1.0  # factor for rotation actions (3rd value in action vector)
 
         # for 6 discrete actions
         if action == 0:  # forward
             return np.array([1.0 * factor, 0.0, 0.0], dtype=np.float32)
         elif action == 1:  # backward
             return np.array([-1.0 * factor, 0.0, 0.0], dtype=np.float32)
-        elif action == 2:  # rotation 1
-            return np.array([0.0, 0.0, 1.0 * rot_factor], dtype=np.float32)
-        elif action == 3:  # rotation 2
-            return np.array([0.0, 0.0, -1.0 * rot_factor], dtype=np.float32)
         elif action == 4:  # sideways 1
             return np.array([0.0, 1.0 * factor, 0.0], dtype=np.float32)
         elif action == 5:  # sideways 2
             return np.array([0.0, -1.0 * factor, 0.0], dtype=np.float32)
-
-        # for 3 discrete actions (forward and both sides)
-        """
-        if action == 0: # forward
-            return np.array([1.0 * factor, 0.0, 0.0], dtype=np.float32)
-        elif action == 1: # sideways 1
-            return np.array([0.0, 1.0*factor, 0.0], dtype=np.float32)
-        elif action == 2: # sideways 2
-            return np.array([0.0, -1.0*factor, 0.0], dtype=np.float32)
-        """
+        elif action == 2:  # rotation 1
+            return np.array([0.0, 0.0, 1.0 * rot_factor], dtype=np.float32)
+        elif action == 3:  # rotation 2
+            return np.array([0.0, 0.0, -1.0 * rot_factor], dtype=np.float32)
 
     def step(self, action):
         # translate action
         action = self.map_discrete_to_continuous(action)
         _, reward, truncated, terminated, info = self.env.step(action)
-        image = self.get_image(self.env, self.camera)
 
-        # TODO check if I need to set instruction idx here
+        # get observation
+        image = self.get_image(self.env, self.camera)
         observation = {"image": image, "instruction_idx": self.current_instruction_idx}
+
         return observation, reward, truncated, terminated, info
 
     def reset(self):

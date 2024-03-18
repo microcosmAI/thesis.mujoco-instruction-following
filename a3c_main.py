@@ -81,14 +81,14 @@ parser.add_argument(
     "-n",
     "--num-processes",
     type=int,
-    default=1,
+    default=8,
     metavar="N",
     help="how many training processes to use (default: 4)",
 )
 parser.add_argument(
     "--num-steps",
     type=int,
-    default=800,
+    default=600,
     metavar="NS",
     help="number of forward steps in A3C (default: 20)",
 )
@@ -114,19 +114,42 @@ parser.add_argument(
 )
 
 if __name__ == "__main__":
-
     args = parser.parse_args()
     curriculum_dir_path = Path.cwd() / "data" / "curriculum"
+    if not curriculum_dir_path.exists():
+        print("No curriculum found - check if curriculum has been generated correctly")
     curriculum_dir_path.mkdir(parents=True, exist_ok=True)
     checkpoint_dir = Path.cwd() / "data" / "checkpoints"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_file_path = checkpoint_dir / "model_checkpoint.pth"
-    #test_dir_path = Path.cwd() / "data" / "test-set" 
+    test_dir_path = Path.cwd() / "data" / "test-set" / "level0"
+    test_dir_path.mkdir(parents=True, exist_ok=True)
 
     word_to_idx = ip.get_word_to_idx_from_curriculum_dir(
         curriculum_dir_path=curriculum_dir_path
     )
     args.input_size = len(word_to_idx)
+
+    # debugging
+    #args.num_processes = 8
+
+    agents = ["agent/"]
+
+    config_dict = {
+        "xmlPath": "", # set in train() / test()
+        "infoJson": "",
+        "agents": agents,
+        "rewardFunctions": [target_reward, distractor_reward, collision_reward], 
+        "doneFunctions": [target_done, distractor_done, border_done],
+        "skipFrames": 5,
+        "environmentDynamics": [Reward],
+        "freeJoint": True,
+        "renderMode": False,
+        "maxSteps":  args.max_episode_length * args.num_processes, 
+        "agentCameras": True,
+        "tensorboard_writer": None,
+        "sensorResolution": (300, 300), # NOTE may require half resolution on apple devices
+    }
 
     if args.evaluate == 0:
         args.use_train_instructions = 1
@@ -149,33 +172,13 @@ if __name__ == "__main__":
     else:
         assert False, "Invalid evaluation type"
 
-
-    agents = ["agent/"]
-
-    config_dict = {
-        "xmlPath": "", # set in train() / test()
-        "infoJson": "",
-        "agents": agents,
-        "rewardFunctions": [target_reward, distractor_reward, collision_reward], 
-        "doneFunctions": [target_done, distractor_done, border_done],
-        "skipFrames": 5,
-        "environmentDynamics": [Reward],
-        "freeJoint": True,
-        "renderMode": False,
-        "maxSteps":  args.max_episode_length * args.num_processes, 
-        "agentCameras": True,
-        "tensorboard_writer": None,
-        "sensorResolution": (300, 300), # NOTE may require half resolution on apple devices
-    }
-
     # Setup logging
     dump_location = Path(args.dump_location)
     if not dump_location.exists():
         dump_location.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(filename=str(dump_location / log_filename), level=logging.INFO)
 
-    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu") # debugging 
+    device = torch.device("cpu")
     print(f"Shared model using device: {device}")
     shared_model = A3C_LSTM_GA(args, device)
     shared_model.to(device)
@@ -189,13 +192,9 @@ if __name__ == "__main__":
     shared_model.share_memory()
 
     processes = []
-    
-    # debugging
-    args.num_processes = 8
 
     if use_test:
-        print("Starting test process ...")
-        p = mp.Process(target=test, args=(args.num_processes, args, shared_model, config_dict, curriculum_dir_path, checkpoint_file_path, device))
+        p = mp.Process(target=test, args=(args.num_processes, args, shared_model, config_dict, curriculum_dir_path, test_dir_path, checkpoint_file_path, device))
         p.start()
         processes.append(p)
     else:

@@ -1,6 +1,6 @@
 import shutil
 import random
-import sys # leave me here
+import sys  # leave me here
 from pathlib import Path
 
 from colorset_generation import colorset_writer
@@ -17,13 +17,15 @@ def get_default_level_parameters(level_amount):
     Returns:
         dict: dict of lists of ints of length level_amount
     """
-    color_amounts = [2, 2, 3, 3, 4, 5, 6, 6, 6][:level_amount]
-    shape_amounts = [1, 2, 2, 3, 3, 4, 5, 6, 6][:level_amount]
-    size_amounts = [2, 2, 2, 2, 2, 2, 2, 2, 2][:level_amount]
+    size_amounts = [2, 2, 2, 2, 3, 3, 3, 3, 3][:level_amount]
+    color_amounts = [1, 2, 2, 2, 3, 4, 3, 4, 5][:level_amount]
+    shape_amounts = [1, 1, 2, 2, 3, 3, 3, 3, 3][:level_amount]
     instr_type_amounts = 2
     instr_amounts = [
-        [1, 1, 2, 2, 3, 3, 4, 4, 5, 5][:level_amount],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0][:level_amount], # NOTE reward functions for non-approach type instructions are not implemented
+        [1, 1, 2, 2, 3, 3, 4, 4, 4, 5][:level_amount],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0][
+            :level_amount
+        ],  # NOTE reward functions for non-approach type instructions are not implemented
     ][:instr_type_amounts]
 
     return {
@@ -35,9 +37,8 @@ def get_default_level_parameters(level_amount):
     }
 
 
-# Function that takes the generated levels of the highest level, and removes 1/3 of the content of each, then returns all the removed levels
 def pull_test_set(curriculum_dir_path, test_set_dir_path, test_set_ratio):
-    """Move a random subset of the highest level of the curriculum to a test set directory
+    """Move a random subset of amount test_set_ratio from the highest level of the curriculum to a test set directory
 
     Args:
         curriculum_dir_path (Path): path to the curriculum directory
@@ -52,19 +53,24 @@ def pull_test_set(curriculum_dir_path, test_set_dir_path, test_set_ratio):
         shutil.rmtree(test_set_dir_path)
     test_set_dir_path.mkdir()
 
-    highest_level_dir_path = curriculum_dir_path / sorted(curriculum_dir_path.iterdir())[-1].name
+    highest_level_dir_path = (
+        curriculum_dir_path / sorted(curriculum_dir_path.iterdir())[-1].name
+    )
 
     # get all xml files from the highest level
     highest_level_files = [
-        file.name for file in highest_level_dir_path.iterdir() if file.name.endswith(".xml")
+        file.name
+        for file in highest_level_dir_path.iterdir()
+        if file.name.endswith(".xml")
     ]
     amount_of_files_to_remove = int(len(highest_level_files) * test_set_ratio)
 
     # pull random files for the test set (get corresponding .json files too)
     random.shuffle(highest_level_files)
-    test_set_files = highest_level_files[:amount_of_files_to_remove]
-    test_set_files += [file.replace(".xml", ".json") for file in test_set_files]
-    test_set_files += [file.replace(".xml", ".yml") for file in test_set_files]
+    xml_files = highest_level_files[:amount_of_files_to_remove]
+    test_set_files = xml_files[:]  # Necessary to avoid getting .json files twice
+    test_set_files += [file.replace(".xml", ".json") for file in xml_files]
+    test_set_files += [file.replace(".xml", ".yml") for file in xml_files]
 
     # move files
     for file in test_set_files:
@@ -78,7 +84,9 @@ def pull_test_set(curriculum_dir_path, test_set_dir_path, test_set_ratio):
         level_dir_path = curriculum_dir_path / level_dir.name
         for file in test_set_files:
             if file in [f.name for f in level_dir_path.iterdir()]:
-                (level_dir_path / file).unlink() # TODO test if levels work if you just remove some files
+                (
+                    level_dir_path / file
+                ).unlink()  # TODO test if levels work if you just remove some files
 
     return None
 
@@ -106,8 +114,8 @@ def main():
         0.33  # ratio of test stages to total stages - taken from the highest level
     )
 
-    level_amount = 3
-    params = get_default_level_parameters(level_amount)
+    level_amount = 5 # mind the 0-indexing
+    params = get_default_level_parameters(level_amount) 
 
     colorset_writer.generate_colorset(
         max_words=1,  # word amount per color (e.g. "green" vs "dark green")
