@@ -1,10 +1,4 @@
-# from MuJoCo_Gym.mujoco_rl import MuJoCoRL
-# import numpy as np
-# import cv2
 import copy
-
-# from sklearn.metrics import mean_squared_error
-# from autoencoder import Autoencoder
 import re
 
 
@@ -92,29 +86,10 @@ class Reward:
         )
         reward = self.environment.data_store["last_distance"] - new_distance
         self.environment.data_store["last_distance"] = copy.deepcopy(new_distance)
-        
-        reward /= 12 # divide by environment size to normalize
-        if not "debug_reward" in self.environment.data_store.keys():
-            self.environment.data_store["debug_reward"] = 0
 
-        self.environment.data_store["debug_reward"] += reward
-        # print("reward: ", reward, "debug_reward: ", self.environment.data_store["debug_reward"])
-        # print("targets: ", targets)
+        reward /= 12  # divide by stage size to normalize
 
         return reward, [], 0, 0
-        """
-        # reward for moving away from initial position
-        if "initial_position" not in self.environment.data_store:
-            self.environment.data_store["initial_position"] = copy.deepcopy(agent["position"])
-
-        new_distance = self.environment.distance(agent["position"], self.environment.data_store["initial_position"])
-
-        # Reward is proportional to the increase in distance from the initial position
-        reward = new_distance - self.environment.data_store.get("last_distance", 0)
-        self.environment.data_store["last_distance"] = copy.deepcopy(new_distance)
-
-        return reward, [], 0, 0
-        """
 
 
 def target_reward(mujoco_gym, agent):
@@ -125,8 +100,6 @@ def target_reward(mujoco_gym, agent):
 
     for target in targets:
         if mujoco_gym.collision(target, agent + "boxagent_geom"):
-            print("TARGET - debug reward:", mujoco_gym.data_store["debug_reward"])
-            mujoco_gym.data_store["debug_reward"] = 0
             reward = 1
             break
 
@@ -141,8 +114,6 @@ def distractor_reward(mujoco_gym, agent):
 
     for distractor in distractors:
         if mujoco_gym.collision(distractor, agent + "boxagent_geom"):
-            print("distractor-reward", distractor)
-            mujoco_gym.data_store["debug_reward"] = 0
             reward = -0.8
             break
 
@@ -150,6 +121,7 @@ def distractor_reward(mujoco_gym, agent):
 
 
 def collision_reward(mujoco_gym, agent):
+    """-1 if agent is colliding with any border, 0 otherwise"""
     for border in [
         "border/border_geom",
         "border_1/border_geom",
@@ -158,8 +130,6 @@ def collision_reward(mujoco_gym, agent):
     ]:
 
         if mujoco_gym.collision(border, "agent/boxagent_geom"):
-            print("BORDER - debug reward:", mujoco_gym.data_store["debug_reward"])
-            mujoco_gym.data_store["debug_reward"] = 0
             return -1
 
     return 0
@@ -171,7 +141,6 @@ def target_done(mujoco_gym, agent):
 
     for target in targets:
         if mujoco_gym.collision(target, agent + "boxagent_geom"):
-            print("target-done", target)
             return True
 
     return False
@@ -183,21 +152,20 @@ def distractor_done(mujoco_gym, agent):
 
     for distractor in distractors:
         if mujoco_gym.collision(distractor, agent + "boxagent_geom"):
-            print("distractor-done", distractor)
             return True
 
     return False
 
 
 def border_done(mujoco_gym, agent):
+    """True if agent is colliding with any border, False otherwise"""
     for border in [
         "border/border_geom",
         "border_1/border_geom",
         "border_2/border_geom",
         "border_3/border_geom",
     ]:
-        if mujoco_gym.collision(border, "agent/boxagent_geom"):
-            print("border-done", border)
+        if mujoco_gym.collision(border, agent + "boxagent_geom"):
             return True
-        
+
     return False

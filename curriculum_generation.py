@@ -114,8 +114,8 @@ def main():
         0.33  # ratio of test stages to total stages - taken from the highest level
     )
 
-    level_amount = 5 # mind the 0-indexing
-    params = get_default_level_parameters(level_amount) 
+    level_amount = 5  # mind the 0-indexing
+    params = get_default_level_parameters(level_amount)
 
     colorset_writer.generate_colorset(
         max_words=1,  # word amount per color (e.g. "green" vs "dark green")

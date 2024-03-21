@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 from itertools import product
 from pathlib import Path
 
+
 def read_colors(colorset_file_path):
     """Read color names and RGB values from a .json file
 
@@ -49,7 +50,9 @@ def read_mujoco_shapes(directory):
             mujoco_element = tree.getroot()
             if mujoco_element is not None:
                 model_attribute = mujoco_element.attrib.get("model", "")
-                shapes.append({"model": model_attribute, "xml_name": filename.name}) # Example.xml
+                shapes.append(
+                    {"model": model_attribute, "xml_name": filename.name}
+                )  # Example.xml
 
     # remove default objects
     default_objects = ["Border.xml", "Light.xml", "BoxAgent.xml"]

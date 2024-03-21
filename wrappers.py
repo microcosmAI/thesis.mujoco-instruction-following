@@ -20,13 +20,10 @@ class ObservationWrapper(gym.Wrapper):
         super().__init__(env)
         self.camera = camera
         self.image_step = 0
-        self.current_level = 0  # TODO remove level logic from wrapper
-        self.threshold_reward = threshold_reward  # TODO set this to a reasonable value
+
         self.curriculum_directory = curriculum_directory
         self.config_dict = config_dict
-        self.test_mode = (
-            test_mode  # in test mode, don't get the instruction idx from a curriculum
-        )
+
         self.max_instr_length = ip.get_max_instruction_length_from_curriculum_dir(
             self.curriculum_directory
         )
@@ -58,6 +55,17 @@ class ObservationWrapper(gym.Wrapper):
         self.make_env = make_env
 
     def get_image(self, env, camera):
+        """
+        Retrieves an image from the environment's camera and performs preprocessing.
+
+        Args:
+            env (object): The environment object.
+            camera (str): The camera name.
+
+        Returns:
+            torch.Tensor: The preprocessed image tensor.
+
+        """
         image = env.unwrapped.environment.get_camera_data(camera)
 
         # Crop to 168x300
@@ -85,6 +93,7 @@ class ObservationWrapper(gym.Wrapper):
         return image
 
     def write_image(self, image, interval):
+        """Writes the given image to a file if the image step is a multiple of the specified interval."""
         images_dir = Path.cwd() / "data" / "images"
         images_dir.mkdir(parents=True, exist_ok=True)
 
@@ -97,10 +106,14 @@ class ObservationWrapper(gym.Wrapper):
             print(f"Saved image {self.image_step} to {str(image_path)}")
 
     def convert_filename_to_instruction(self, filename):
+        """Converts a filename to an instruction by removing path, file extension, and hyphens, and returns it"""
+
         filename = filename.split("/")[-1]
         return filename.split(".")[0].replace("-", " ")
 
     def set_instruction_idx(self, env):
+        """Sets the instruction index for the given environment, handles padding and conversion to tensor"""
+
         instruction = self.convert_filename_to_instruction(
             env.unwrapped.environment.xml_path
         )
@@ -117,6 +130,7 @@ class ObservationWrapper(gym.Wrapper):
         self.current_instruction_idx = instruction_idx
 
     def map_discrete_to_continuous(self, action):
+        """Maps a discrete action to a continuous action vector."""
         factor = 1.1
         rot_factor = 1.0  # factor for rotation actions (3rd value in action vector)
 

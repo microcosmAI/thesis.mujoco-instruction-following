@@ -9,14 +9,12 @@ import torch.multiprocessing as mp
 from models import A3C_LSTM_GA
 from a3c_train import train_curriculum, train
 from a3c_test import test
-import logging
 
 from dynamics import *
 from distutils.util import strtobool
 import numpy as np
 
 import instruction_processing as ip
-from progressbar import progressbar
 
 
 parser = argparse.ArgumentParser(description="Gated-Attention for Grounding")
@@ -26,16 +24,10 @@ parser.add_argument(
     "-l",
     "--max-episode-length",
     type=int,
-    default=2000, # TODO experiment a bit with this value
-    help="maximum length of an episode (default: 1000)",
+    default=2000,
+    help="maximum length of an episode (default: 2000)",
 )
-parser.add_argument(
-    "--living-reward",
-    type=float,
-    default=0,
-    help="""Default reward at each time step (default: 0,
-                    change to -0.005 to encourage shorter paths)""",
-)
+
 parser.add_argument(
     "-v",
     "--visualize",
@@ -43,13 +35,6 @@ parser.add_argument(
     default=0,
     help="""Visualize the envrionment (default: 0,
                     use 0 for faster training)""",
-)
-parser.add_argument(
-    "--sleep",
-    type=float,
-    default=0,
-    help="""Sleep between frames for better
-                    visualization (default: 0)""",
 )
 
 # A3C arguments
@@ -83,34 +68,27 @@ parser.add_argument(
     type=int,
     default=8,
     metavar="N",
-    help="how many training processes to use (default: 4)",
+    help="how many training processes to use (default: 8)",
 )
 parser.add_argument(
     "--num-steps",
     type=int,
     default=600,
     metavar="NS",
-    help="number of forward steps in A3C (default: 20)",
+    help="number of forward steps in A3C (default: 600)",
 )
 parser.add_argument(
     "--load",
     type=str,
     default="0",
-    help="model path to load, 0 to not reload (default: 0)",
+    help="1 to load model from default path, 0 to not reload (default: 0)",
 )
 parser.add_argument(
     "-e",
     "--evaluate",
     type=int,
     default=0,
-    help="""0:Train, 1:Evaluate MultiTask Generalization
-                    2:Evaluate Zero-shot Generalization (default: 0)""",
-)
-parser.add_argument(
-    "--dump-location",
-    type=str,
-    default="./saved/",  # TODO separate into /logs and /saved_models
-    help="path to dump models and log (default: ./saved/)",
+    help="""0:Train, 1:Evaluate on test set (default: 0)""",
 )
 
 if __name__ == "__main__":
@@ -133,19 +111,19 @@ if __name__ == "__main__":
     agents = ["agent/"]
 
     config_dict = {
-        "xmlPath": "", # set in train() / test()
+        "xmlPath": "",  # set in train() / test()
         "infoJson": "",
         "agents": agents,
-        "rewardFunctions": [target_reward, distractor_reward, collision_reward], 
+        "rewardFunctions": [target_reward, distractor_reward, collision_reward],
         "doneFunctions": [target_done, distractor_done, border_done],
         "skipFrames": 5,
         "environmentDynamics": [Reward],
         "freeJoint": True,
         "renderMode": False,
-        "maxSteps":  args.max_episode_length * args.num_processes, 
+        "maxSteps": args.max_episode_length * args.num_processes,
         "agentCameras": True,
         "tensorboard_writer": None,
-        "sensorResolution": (300, 300), # NOTE may require half resolution on apple devices
+        "sensorResolution": (300,300),  # NOTE may require half resolution on apple devices
     }
 
     if args.evaluate == 0:
@@ -153,29 +131,14 @@ if __name__ == "__main__":
         log_filename = "train.log"
         use_test = False
     elif args.evaluate == 1:
-        args.use_train_instructions = 1 # TODO remove obsolete
         args.num_processes = 0
-        curriculum_dir_path = Path.cwd() / "data" / "test-set" 
+        curriculum_dir_path = Path.cwd() / "data" / "test-set"
         curriculum_dir_path.mkdir(parents=True, exist_ok=True)
-        log_filename = "test-MT.log"
-        use_test = True
-    elif args.evaluate == 2:
-        args.use_train_instructions = 0
-        args.num_processes = 0
-        curriculum_dir_path = Path.cwd() / "data" / "test-set" 
-        curriculum_dir_path.mkdir(parents=True, exist_ok=True)
-        log_filename = "test-ZSL.log"
         use_test = True
     else:
         assert False, "Invalid evaluation type"
 
-    # Setup logging
-    dump_location = Path(args.dump_location)
-    if not dump_location.exists():
-        dump_location.mkdir(parents=True, exist_ok=True)
-    logging.basicConfig(filename=str(dump_location / log_filename), level=logging.INFO)
-
-    device = torch.device("cpu")
+    device = torch.device("cpu") # Note: GPU not supported, but for A2C or other algorithms, recommended to implement
     print(f"Shared model using device: {device}")
     shared_model = A3C_LSTM_GA(args, device)
     shared_model.to(device)
@@ -191,12 +154,35 @@ if __name__ == "__main__":
     processes = []
 
     if use_test:
-        p = mp.Process(target=test, args=(args.num_processes, args, shared_model, config_dict, curriculum_dir_path, test_dir_path, checkpoint_file_path, device))
+        p = mp.Process(
+            target=test,
+            args=(
+                args.num_processes,
+                args,
+                shared_model,
+                config_dict,
+                curriculum_dir_path,
+                test_dir_path,
+                checkpoint_file_path,
+                device,
+            ),
+        )
         p.start()
         processes.append(p)
     else:
         for rank in range(args.num_processes):
-            p = mp.Process(target=train_curriculum, args=(curriculum_dir_path, rank, args, shared_model, config_dict, checkpoint_file_path, device))
+            p = mp.Process(
+                target=train_curriculum,
+                args=(
+                    curriculum_dir_path,
+                    rank,
+                    args,
+                    shared_model,
+                    config_dict,
+                    checkpoint_file_path,
+                    device,
+                ),
+            )
             p.start()
             processes.append(p)
 

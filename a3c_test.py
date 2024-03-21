@@ -13,12 +13,10 @@ import numpy as np
 import torch
 import torch.optim as optim
 from torch.autograd import Variable
-import logging
 
 from MuJoCo_Gym.mujoco_rl import MuJoCoRL
 from MuJoCo_Gym.wrappers import GymnasiumWrapper
 
-# from models import *
 from wrappers import ObservationWrapper
 from dynamics import *
 
@@ -55,7 +53,7 @@ def test(
     if args.visualize:
         # pull only the first stage from the test set, because renderMode will only work with a single stage
         test_file_path = list(test_dir_path.iterdir())[0]
-        print("Test file path: ", test_file_path)
+        print("Testing on file: ", test_file_path)
         test_json = test_file_path.with_suffix(".json")
         test_xml = test_file_path.with_suffix(".xml")
         config_dict["infoJson"] = str(test_json.as_posix())
@@ -82,7 +80,7 @@ def test(
 
     model = A3C_LSTM_GA(args, device).to(device)
 
-    print("Loading model from ... " + str(checkpoint_file_path))
+    print("Loading model from: " + str(checkpoint_file_path))
     checkpoint = torch.load(
         checkpoint_file_path, map_location=lambda storage, loc: storage
     )
@@ -111,13 +109,13 @@ def test(
     num_episode = 0
     best_reward = 0.0
     test_freq = 50
+    total_steps = 0 # steps, actually
 
     while True:
         episode_length += 1
-        if done:
-            # if (args.evaluate == 0):
-            #    model.load_state_dict(shared_model.state_dict())
+        total_steps += 1
 
+        if done:
             with torch.no_grad():
                 cx = torch.zeros(1, 256).to(device)
                 hx = torch.zeros(1, 256).to(device)
@@ -156,25 +154,10 @@ def test(
                 accuracy = 0
             accuracy_list.append(accuracy)
 
-            track_test_metrics(writer, rewards_list, episode_length_list)
+            track_test_metrics(writer, rewards_list, episode_length_list, total_steps)
 
             if len(rewards_list) >= test_freq:
                 print(
-                    " ".join(
-                        [
-                            "Time {},".format(
-                                time.strftime(
-                                    "%Hh %Mm %Ss", time.gmtime(time.time() - start_time)
-                                )
-                            ),
-                            "Avg Reward {},".format(np.mean(rewards_list)),
-                            "Avg Accuracy {},".format(np.mean(accuracy_list)),
-                            "Avg Ep length {},".format(np.mean(episode_length_list)),
-                            "Best Reward {}".format(best_reward),
-                        ]
-                    )
-                )
-                logging.info(
                     " ".join(
                         [
                             "Time {},".format(
@@ -208,15 +191,24 @@ def test(
             if args.evaluate != 0 and args.visualize == 1:
                 print(
                     "Instruction idx: {} ".format(instruction_idx)
-                )  # TODO convert to words
+                )  
 
                 
 
-def track_test_metrics(writer, rewards, episode_lengths):
+def track_test_metrics(writer, rewards, episode_lengths, total_steps):
+    """
+    Track and log test metrics using a SummaryWriter.
+
+    Args:
+        writer (SummaryWriter): The SummaryWriter object used for logging.
+        rewards (list): A list of rewards obtained in each episode.
+        episode_lengths (list): A list of lengths of each episode.
+
+    Returns:
+        int: The accuracy value, which is 1 if the maximum reward is greater than 1, otherwise 0.
+    """
 
     if episode_lengths:
-        total_steps = sum(episode_lengths)
-        print(total_steps / 1000, "K steps")
 
         total_reward = sum(rewards)
         avg_reward = total_reward / len(rewards)
@@ -225,13 +217,9 @@ def track_test_metrics(writer, rewards, episode_lengths):
         min_reward = min(rewards)
 
         if max_reward > 1:
-            print("Max reward: ", max_reward)
             accuracy = 1
         else:
             accuracy = 0
-
-
-        min_episode_length = min(episode_lengths)
 
         last_episode_length = episode_lengths[-1]
 

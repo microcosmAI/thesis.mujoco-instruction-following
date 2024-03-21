@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.optim as optim
 from torch.autograd import Variable
-import logging
+import time
 
 from MuJoCo_Gym.mujoco_rl import MuJoCoRL
 from MuJoCo_Gym.wrappers import GymnasiumWrapper
@@ -75,20 +75,14 @@ def train(
     env = gym.vector.AsyncVectorEnv(
         [make_env(config_dict, curriculum_dir_path) for _ in range(1)],
         context="spawn",
-        shared_memory=True,  # TODO true
+        shared_memory=True, 
     )
 
     _ = env.reset()
 
-    model = A3C_LSTM_GA(args, device).to(device)  # TODO pass device into function
+    model = A3C_LSTM_GA(args, device).to(device)  
 
-    # if args.load != "0":
-    #    print(str(rank) + " Loading model ... " + args.load)
-    #    model.load_state_dict(
-    #        torch.load(args.load, map_location=lambda storage, loc: storage)
-    #    )
-
-    if args.load != "0":  # TODO fix this
+    if args.load != "0": 
         print("Rank: ", str(rank))
         print("Loading model from ", str(checkpoint_file_path))
         checkpoint = torch.load(
@@ -192,16 +186,15 @@ def train(
             rewards.append(reward)
 
             if done:
-                accuracies.append(track_metrics(
-                    writer, p_losses, rewards, episode_lengths
-                ))
+                accuracies.append(
+                    track_metrics(writer, p_losses, rewards, episode_lengths)
+                )
                 if len(accuracies) > avg_accuracy_window_size:
                     avg_accuracy = (
                         sum(accuracies[-avg_accuracy_window_size:])
                         / avg_accuracy_window_size
                     )
                     print("Average accuracy: ", avg_accuracy)
-                    logging.info("Average accuracy: " + str(avg_accuracy))
 
                 if avg_accuracy > threshold_accuracy:
                     threshold_reached = True
@@ -265,16 +258,6 @@ def train(
                     ]
                 )
             )
-            logging.info(
-                " ".join(
-                    [
-                        "Training thread: {}".format(rank),
-                        "Num iters: {}K".format(num_iters),
-                        "Avg policy loss: {}".format(np.mean(p_losses)),
-                        "Avg value loss: {}".format(np.mean(v_losses)),
-                    ]
-                )
-            )
             p_losses = []
             v_losses = []
 
@@ -308,8 +291,23 @@ def train_curriculum(
     checkpoint_file_path,
     device,
 ):
-    # TODO pull from the curriculum all relevant information
-    threshold_accuracy = 0.8  # TODO set this to a reasonable value
+    """
+    Trains the curriculum for reinforcement learning. Calls the train() function.
+
+    Args:
+        curriculum_dir_path (str): The path to the directory containing the curriculum levels.
+        rank (int): The rank of the current process.
+        args: The command-line arguments.
+        shared_model: The shared model for training.
+        config_dict (dict): The configuration dictionary.
+        checkpoint_file_path (str): The path to the checkpoint file.
+        device: The device to use for training.
+
+    Returns:
+        None
+    """
+
+    threshold_accuracy = 0.8
     curriculum_dir_path = Path(curriculum_dir_path)
     level_dir_paths = sorted(
         [
@@ -321,9 +319,11 @@ def train_curriculum(
     current_reward = 0
     current_level = 0
 
-    # curriculum loop # TODO actually make it increase levels
-    for current_level in range(1, len(level_dir_paths)): # TODO make 0, len(level_dir_paths) again
-        writer = SummaryWriter(log_dir=f'runs/level_{current_level}')
+    # curriculum loop
+    for current_level in range(0, len(level_dir_paths)):
+        # combine current_level and current time to a string
+        level_run = f"level_{current_level}_run_{int(time.time())}"
+        writer = SummaryWriter(log_dir=f"runs/level_{level_run}")
         if current_level != 0:
             args.load = "1"
 
@@ -338,15 +338,6 @@ def train_curriculum(
         ]  # NOTE not filtered from dir, to exclude prompts.json
         config_dict["xmlPath"] = [str(file.as_posix()) for file in xml_files]
         config_dict["infoJson"] = [str(file.as_posix()) for file in json_files]
-
-        print(
-            "Training on level ",
-            current_level,
-            "with files:",
-            xml_files,
-            " / ",
-            config_dict["infoJson"],
-        )  # debugging
 
         train(
             rank,
@@ -367,7 +358,19 @@ def train_curriculum(
 
 
 def track_metrics(writer, p_losses, rewards, episode_lengths):
+    """
+    Track and log various metrics during training.
 
+    Args:
+        writer (SummaryWriter): SummaryWriter object for logging metrics.
+        p_losses (list): List of policy losses.
+        rewards (list): List of rewards obtained.
+        episode_lengths (list): List of episode lengths.
+
+    Returns:
+        int: Accuracy value (1 if max_reward > 1, else 0).
+
+    """
     if episode_lengths:
         total_steps = sum(episode_lengths)
         print(total_steps / 1000, "K steps")
@@ -379,7 +382,6 @@ def track_metrics(writer, p_losses, rewards, episode_lengths):
         min_reward = min(rewards)
 
         if max_reward > 1:
-            print("Max reward: ", max_reward)
             accuracy = 1
         else:
             accuracy = 0
@@ -410,6 +412,6 @@ def track_metrics(writer, p_losses, rewards, episode_lengths):
         writer.flush()
 
         return accuracy
-    
+
     else:
         return 0
