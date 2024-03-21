@@ -2,5 +2,7 @@
 data/curriculum/*
 !data/curriculum/
 data/test-set/*
-images/*
+!data/test-set/
+data/images/*
+!data/images/
 runs/
