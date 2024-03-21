@@ -1,43 +1,13 @@
-# Script that calls the following scripts in order:
-#  1. ./colorset_generation/colorset_writer.py
-#  2. ./prompt_generation/prompt_writer.py
-#  3. ./xml_generation/xml_writer.py
-#
-# This script should be structured as follows:
-#  1. Import all necessary modules
-#  2. Ask user whether they want default or custom curriculum
-#  3. If default, call curriculum generation function with default parameters
-#  4. If custom, ask user for parameters:
-#     a. Generate colorset?
-#      i. If yes, call colorset generation function with user parameters
-#     b. Generate prompt?
-#      i. If yes, call prompt generation function with user parameters
-#     c. Generate XML?
-#      i. If yes, call XML generation function with user parameters
-#     d. Generate curriculum?
-#      i. If yes, call curriculum generation function with user parameters
-#     (the steps above should be called such that if one is yes, the ones that follow are also yes)
-#  5. Call curriculum generation function with user parameters
-#  6. Print confirmation message
-#
-# The curriculum generation script works as follows:
-#  Depending on the parameters, create total_levels amount of folders
-#  For each folder, do step 4 from above if the user wants custom parameters, 3 otherwise
-
-import os
-import sys
-import xml.etree.ElementTree as ET
-import argparse
 import shutil
+import random
+import sys  # leave me here
+from pathlib import Path
 
-
-# Import all necessary modules
 from colorset_generation import colorset_writer
 from prompt_generation import prompt_writer
 from xml_generation import xml_writer
 
 
-# Function that takes level amount, and returns a dict of lists of ints, where the keys are the parameters for the prompt writing
 def get_default_level_parameters(level_amount):
     """Return default level parameters as a dict of lists of ints
 
@@ -47,13 +17,15 @@ def get_default_level_parameters(level_amount):
     Returns:
         dict: dict of lists of ints of length level_amount
     """
-    color_amounts = [2, 2, 3, 3, 4, 5, 6, 6, 6][:level_amount]
-    shape_amounts = [1, 2, 2, 3, 3, 4, 5, 6, 6][:level_amount]
-    size_amounts = [1, 1, 2, 2, 2, 2, 2, 2, 2][:level_amount]
+    size_amounts = [2, 2, 2, 2, 3, 3, 3, 3, 3][:level_amount]
+    color_amounts = [1, 2, 2, 2, 3, 4, 3, 4, 5][:level_amount]
+    shape_amounts = [1, 1, 2, 2, 3, 3, 3, 3, 3][:level_amount]
     instr_type_amounts = 2
     instr_amounts = [
-        [1, 1, 2, 2, 3, 3, 4, 4, 5, 5][:level_amount],
-        [0, 0, 0, 0, 0, 1, 1, 1, 1, 1][:level_amount],
+        [1, 1, 2, 2, 3, 3, 4, 4, 4, 5][:level_amount],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0][
+            :level_amount
+        ],  # NOTE reward functions for non-approach type instructions are not implemented
     ][:instr_type_amounts]
 
     return {
@@ -65,114 +37,85 @@ def get_default_level_parameters(level_amount):
     }
 
 
-def get_custom_level_parameters():
-    # TODO
-    return None
+def pull_test_set(curriculum_dir_path, test_set_dir_path, test_set_ratio):
+    """Move a random subset of amount test_set_ratio from the highest level of the curriculum to a test set directory
 
+    Args:
+        curriculum_dir_path (Path): path to the curriculum directory
+        test_set_ratio (float): ratio of test stages to total stages - taken from the highest level
 
-def generate_level(
-    level_number,
-    colorset, # TODO rename colorset_file_path
-    color_amount,
-    shape_amount,
-    size_amount,
-    instr_amounts,
-    curriculum_dir_path,
-    instr_types,
-    instr_file_path,
-    xml_objects_file_path,
-):
-    print(f"Generating level {level_number}...")
-    print("color_amount:", color_amount)
-    print("shape_amount:", shape_amount)
-    print("size_amount:", size_amount)
-    print("instr_types:", instr_types)
-    print("instr_amounts:", instr_amounts)
+    Returns:
+        None
+    """
 
-    level_folder = f"level_{level_number}"
-    level_dir_path = os.path.join(curriculum_dir_path, level_folder)
+    # create test set directory
+    if test_set_dir_path.exists():
+        shutil.rmtree(test_set_dir_path)
+    test_set_dir_path.mkdir()
 
-    if os.path.exists(level_dir_path):
-        shutil.rmtree(level_dir_path)
-    os.mkdir(level_dir_path)  # TODO incorporate this logic into all relevant scripts
-
-    # prompts file path is curriculum_dir_path/level_dir_path/prompts/prompts.json
-    prompts_file_path = os.path.join(level_dir_path, "prompts", "prompts.json")
-    # os.makedirs(os.path.dirname(prompts_file_path), exist_ok=True)
-
-    # generate prompts. prompt path is curriculum_dir_path/level_dir_path/prompts/prompts.json
-    prompt_writer.write_prompts(
-        colorset=colorset,
-        prompts_file_path=prompts_file_path,
-        xml_objects_file_path=xml_objects_file_path,
-        color_amount=color_amount,
-        shape_amount=shape_amount,
-        size_amount=size_amount,
-        instr_amounts=instr_amounts,
+    highest_level_dir_path = (
+        curriculum_dir_path / sorted(curriculum_dir_path.iterdir())[-1].name
     )
 
-    # xml path for the level is curriculum_dir_path/level_dir_path/xml
-    # yml path for the level is curriculum_dir_path/level_folder/yml
-    xml_output_dir_path = os.path.join(level_dir_path, "xml")
-    yml_output_dir_path = os.path.join(level_dir_path, "yml")
+    # get all xml files from the highest level
+    highest_level_files = [
+        file.name
+        for file in highest_level_dir_path.iterdir()
+        if file.name.endswith(".xml")
+    ]
+    amount_of_files_to_remove = int(len(highest_level_files) * test_set_ratio)
 
-    # generate xmls
-    xml_writer.write_environments(
-        prompts_file_path=prompts_file_path,
-        xml_output_dir_path=xml_output_dir_path,
-        xml_objects_file_path=xml_objects_file_path,
-        yml_output_dir_path=yml_output_dir_path,
-        colorset_file_path=colorset_file_path,
-        color_amount=color_amount,
-    )
+    # pull random files for the test set (get corresponding .json files too)
+    random.shuffle(highest_level_files)
+    xml_files = highest_level_files[:amount_of_files_to_remove]
+    test_set_files = xml_files[:]  # Necessary to avoid getting .json files twice
+    test_set_files += [file.replace(".xml", ".json") for file in xml_files]
+    test_set_files += [file.replace(".xml", ".yml") for file in xml_files]
 
-
-def generate_curriculum(curriculum_dir_path, level_amount, level_parameters):
-    # iterate over level_parameters, which is a dict of lists of ints. The keys are the parameters for the generate_level function.
-    # within this function, call generate_level with the parameters from the dict
-
-    for (
-        level_number,
-        color_amount,
-        shape_amount,
-        size_amount,
-        instr_amounts,
-    ) in level_parameters:
-        generate_level(
-            level_number,
-            color_amount,
-            shape_amount,
-            size_amount,
-            instr_amounts,
-            curriculum_dir_path,
+    # move files
+    for file in test_set_files:
+        shutil.move(
+            highest_level_dir_path / file,
+            test_set_dir_path / file,
         )
 
+    # make sure no files from the test set remain in the training set
+    for level_dir in curriculum_dir_path.iterdir():
+        level_dir_path = curriculum_dir_path / level_dir.name
+        for file in test_set_files:
+            if file in [f.name for f in level_dir_path.iterdir()]:
+                (
+                    level_dir_path / file
+                ).unlink()  # TODO test if levels work if you just remove some files
 
-# Function that takes the generated levels of the highest level, and removes 1/3 of the content of each, then returns all the removed levels
-def get_test_levels(levels):
-    # TODO
-    return None
-
-
-def move_test_levels(test_levels, output_path):
-    # TODO move test levels to different folder
     return None
 
 
 def main():
-    xkcd_dataset_file_path = os.path.join(os.getcwd(), "data", "color_data", "rgb.txt")
-    colorset_dir_path = os.path.join(os.getcwd(), "data", "color_data")
-    prompts_file_path = os.path.join(os.getcwd(), "data", "prompt_data", "prompts.json")
-    curriculum_dir_path = os.path.join(
-        os.getcwd(), "data", "curriculum"
-    )  # TODO unify naming convention (dir vs file)
-    xml_object_dir_path = os.path.join(os.getcwd(), "data", "objects")
-    instr_file_path = os.path.join(os.getcwd(), "data", "prompt_data", "instructions.txt")
+    cwd = Path.cwd()
+    xkcd_dataset_file_path = cwd / "data" / "color-data" / "rgb.txt"
+    colorset_dir_path = cwd / "data" / "color-data"
+    prompts_file_path = cwd / "data" / "prompt-data" / "prompts.json"
+    curriculum_dir_path = cwd / "data" / "curriculum"
+    test_set_dir_path = cwd / "data" / "test-set" / "level0"
+    xml_object_dir_path = cwd / "data" / "objects"
+    instr_file_path = cwd / "data" / "prompt-data" / "instructions.txt"
+
+    curriculum_dir_path.mkdir(parents=True, exist_ok=True)
+
     instr_types = ["approach", "avoid"]
+    size_modifiers = [
+        {"name": "large", "factor": 1},
+        {"name": "small", "factor": 0.5},
+        {"name": "huge", "factor": 2},
+        {"name": "tiny", "factor": 0.25},
+    ]
+    test_set_ratio = (
+        0.33  # ratio of test stages to total stages - taken from the highest level
+    )
 
-
-    level_amount = 3
-    params = get_default_level_parameters(level_amount)
+    level_amount = 5 # mind the 0-indexing
+    params = get_default_level_parameters(level_amount) 
 
     colorset_writer.generate_colorset(
         max_words=1,  # word amount per color (e.g. "green" vs "dark green")
@@ -181,22 +124,22 @@ def main():
         dataset_path=xkcd_dataset_file_path,
         output_dir_path=colorset_dir_path,
     )
-    colorset_file_path = os.path.join(colorset_dir_path, "colors.json")
+
+    colorset_file_path = colorset_dir_path / "colors.json"
 
     # generate one set of prompts and their corresponding xmls for each level
-    # the amount of levels
     for level_number in range(level_amount):
         # generate a new directory for each level
-        level_dir_path = os.path.join(curriculum_dir_path, f"level_{level_number}")
-        if os.path.exists(level_dir_path):
+        level_dir_path = curriculum_dir_path / f"level{level_number}"
+        if level_dir_path.exists():
             shutil.rmtree(level_dir_path)
-        os.mkdir(level_dir_path)
+        level_dir_path.mkdir()
 
-        prompts_file_path = os.path.join(
-            level_dir_path, f"prompts_lvl{level_number}.json"
-        )
-        
-        instr_amounts = [instr_amount[level_number] for instr_amount in params["instr_amounts"]]
+        prompts_file_path = level_dir_path / f"prompts-lvl{level_number}.json"
+
+        instr_amounts = [
+            instr_amount[level_number] for instr_amount in params["instr_amounts"]
+        ]
 
         # generate prompts
         prompt_writer.write_prompts(
@@ -208,8 +151,8 @@ def main():
             shape_amount=params["shape_amounts"][level_number],
             size_amount=params["size_amounts"][level_number],
             instr_amounts=instr_amounts,
-            size_modifier_list = ["large", "small", "huge", "tiny"],
-            instr_types=instr_types, # TODO move to params
+            size_modifier_list=size_modifiers,
+            instr_types=instr_types,  # TODO move to params
         )
 
         # generate xmls
@@ -220,31 +163,16 @@ def main():
             xml_object_dir_path=xml_object_dir_path,
             colorset_file_path=colorset_file_path,
             color_amount=params["color_amounts"][level_number],
+            size_modifier_list=size_modifiers,
+            size_amount=params["size_amounts"][level_number],
         )
 
-    #generate_curriculum(curriculum_dir_path, params)
-
-    """
-    # Ask user whether they want default or custom curriculum
-    # Use argpase for this:
-    #  -d or --default for default
-    #  -c or --custom for custom
-    #  -h or --help for help
-    parser = argparse.ArgumentParser(description='Generate a curriculum.')
-    parser.add_argument('-d', '--default', action='store_true', help='Generate a default curriculum.')
-    parser.add_argument('-c', '--custom', action='store_true', help='Generate a custom curriculum.')
-
-    args = parser.parse_args()
-
-    # If default, call curriculum generation function with default parameters
-    if args.default:
-        # TODO
-        pass
-    # If custom, ask user for parameters:
-    elif args.custom:
-        get_custom_prompt_parameters()
-
-    """
+    # generate test set
+    pull_test_set(
+        curriculum_dir_path=curriculum_dir_path,
+        test_set_dir_path=test_set_dir_path,
+        test_set_ratio=test_set_ratio,
+    )
 
 
 if __name__ == "__main__":
