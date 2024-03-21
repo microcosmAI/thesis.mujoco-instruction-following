@@ -31,8 +31,6 @@ def make_env(config_dict, curriculum_dir_path):
         env = GymnasiumWrapper(env, config_dict["agents"][0])
         env = gym.wrappers.RecordEpisodeStatistics(env)
         env = gym.wrappers.NormalizeObservation(env)
-        #env = gym.wrappers.NormalizeReward(env)
-        #env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
         env = ObservationWrapper(
             env,
             camera="agent/boxagent_camera",
@@ -57,11 +55,13 @@ def test(
     if args.visualize:
         # pull only the first stage from the test set, because renderMode will only work with a single stage
         test_file_path = list(test_dir_path.iterdir())[0]
+        print("Test file path: ", test_file_path)
         test_json = test_file_path.with_suffix(".json")
         test_xml = test_file_path.with_suffix(".xml")
         config_dict["infoJson"] = str(test_json.as_posix())
         config_dict["xmlPath"] = str(test_xml.as_posix())
         config_dict["renderMode"] = True
+        config_dict["environmentDynamics"] = [],
 
     else:
         # get all stages from the test set
@@ -90,26 +90,14 @@ def test(
 
     model.eval()
 
+    # set tensorboard writer to write to directory runs/test{current_time}
+    writer = SummaryWriter("runs/test" + time.strftime("%Y-%m-%d-%H-%M-%S"))
+
     observation_dict, _ = env.reset()
     image = observation_dict["image"]
     image = torch.from_numpy(image).float().to(device)
     instruction_idx = observation_dict["instruction_idx"]
     instruction_idx = torch.from_numpy(instruction_idx).to(device)
-
-    # Print instruction while evaluating and visualizing
-    # if args.evaluate != 0 and args.visualize == 1:
-    #    print("Instruction idx: {} ".format(instruction_idx)) # TODO convert to words
-
-    # TODO print instruction in words here
-
-    # Getting indices of the words in the instruction
-    # instruction_idx = []
-    # for word in instruction.split(" "):
-    #    instruction_idx.append(env.word_to_idx[word])
-    # instruction_idx = np.array(instruction_idx)
-
-    # image = torch.from_numpy(image).float()/255.0
-    # instruction_idx = torch.from_numpy(instruction_idx).view(1, -1)
 
     reward_sum = 0
     done = True
@@ -123,26 +111,6 @@ def test(
     num_episode = 0
     best_reward = 0.0
     test_freq = 50
-    """while True:
-        episode_length += 1
-        if done:
-            if (args.evaluate == 0):
-                model.load_state_dict(shared_model.state_dict())
-
-            cx = Variable(torch.zeros(1, 256), volatile=True).to(device)
-            hx = Variable(torch.zeros(1, 256), volatile=True).to(device)
-        else:
-            cx = Variable(cx.data, volatile=True).to(device)
-            hx = Variable(hx.data, volatile=True).to(device)
-
-        tx = Variable(torch.from_numpy(np.array([episode_length])).long(),
-                      volatile=True).to(device)
-
-        value, logit, (hx, cx) = model(
-                (Variable(image, volatile=True),
-                 Variable(instruction_idx, volatile=True), (tx, hx, cx)))
-        prob = F.softmax(logit)
-        action = prob.max(1)[1].data.numpy()"""  # volatile deprecated
 
     while True:
         episode_length += 1
@@ -177,18 +145,19 @@ def test(
         if done:
             num_episode += 1
             rewards_list.append(reward_sum)
-            print("Reward sum: ", reward_sum)
-            print("reward: ", reward)
             # Print reward while evaluating and visualizing
             if args.evaluate != 0 and args.visualize == 1:
                 print("Total reward: {}".format(reward_sum))
 
             episode_length_list.append(episode_length)
-            if reward >= 1:  # TODO look for max reward of all steps, instead of this!
+            if reward_sum >= 1: 
                 accuracy = 1
             else:
                 accuracy = 0
             accuracy_list.append(accuracy)
+
+            track_test_metrics(writer, rewards_list, episode_length_list)
+
             if len(rewards_list) >= test_freq:
                 print(
                     " ".join(
@@ -241,9 +210,42 @@ def test(
                     "Instruction idx: {} ".format(instruction_idx)
                 )  # TODO convert to words
 
-            # Getting indices of the words in the instruction
-        # instruction_idx = []
-        # for word in instruction.split(" "):
-        #     instruction_idx.append(env.word_to_idx[word])
-        # instruction_idx = np.array(instruction_idx)
-        # instruction_idx = torch.from_numpy(instruction_idx).view(1, -1)
+                
+
+def track_test_metrics(writer, rewards, episode_lengths):
+
+    if episode_lengths:
+        total_steps = sum(episode_lengths)
+        print(total_steps / 1000, "K steps")
+
+        total_reward = sum(rewards)
+        avg_reward = total_reward / len(rewards)
+        median_reward = np.median(rewards)
+        max_reward = max(rewards)
+        min_reward = min(rewards)
+
+        if max_reward > 1:
+            print("Max reward: ", max_reward)
+            accuracy = 1
+        else:
+            accuracy = 0
+
+
+        min_episode_length = min(episode_lengths)
+
+        last_episode_length = episode_lengths[-1]
+
+        writer.add_scalar("Total Reward", total_reward, total_steps)
+        writer.add_scalar("Average Reward", avg_reward, total_steps)
+        writer.add_scalar("Median Reward", median_reward, total_steps)
+        writer.add_scalar("Max Reward", max_reward, total_steps)
+        writer.add_scalar("Min Reward", min_reward, total_steps)
+
+        writer.add_scalar("Episode Length", last_episode_length, total_steps)
+
+        writer.flush()
+
+        return accuracy
+    
+    else:
+        return 0

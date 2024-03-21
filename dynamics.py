@@ -143,7 +143,7 @@ def distractor_reward(mujoco_gym, agent):
         if mujoco_gym.collision(distractor, agent + "boxagent_geom"):
             print("distractor-reward", distractor)
             mujoco_gym.data_store["debug_reward"] = 0
-            reward = -0.5
+            reward = -0.8
             break
 
     return reward

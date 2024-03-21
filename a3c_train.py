@@ -23,7 +23,7 @@ def make_env(config_dict, curriculum_dir_path):
         env = gym.wrappers.RecordEpisodeStatistics(env)
         env = gym.wrappers.NormalizeObservation(env)
         env = gym.wrappers.NormalizeReward(env)
-        env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 20))
+        env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
         env = ObservationWrapper(
             env,
             camera="agent/boxagent_camera",
@@ -89,16 +89,21 @@ def train(
     #    )
 
     if args.load != "0":  # TODO fix this
-        print(str(rank) + " Loading model ... " + args.load)
-        checkpoint = torch.load(args.load)
+        print("Rank: ", str(rank))
+        print("Loading model from ", str(checkpoint_file_path))
+        checkpoint = torch.load(
+            checkpoint_file_path, map_location=lambda storage, loc: storage
+        )
         model.load_state_dict(checkpoint["model_state_dict"])
+        model.train()
+        optimizer = optim.SGD(shared_model.parameters(), lr=args.lr)
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         num_iters = checkpoint["num_iters"]
         pass
 
-    model.train()
-
-    optimizer = optim.SGD(shared_model.parameters(), lr=args.lr)
+    else:
+        model.train()
+        optimizer = optim.SGD(shared_model.parameters(), lr=args.lr)
 
     p_losses = []
     v_losses = []
@@ -116,7 +121,7 @@ def train(
     episode_lengths = []  # NOTE added
     accuracies = []
     avg_accuracy = 0  # sliding window
-    avg_accuracy_window_size = 10  # nr of episodes
+    avg_accuracy_window_size = 100  # nr of episodes
     threshold_reached = False
     num_iters = 0
     first_iter = True
@@ -316,11 +321,9 @@ def train_curriculum(
     current_reward = 0
     current_level = 0
 
-    writer = SummaryWriter()
-
     # curriculum loop # TODO actually make it increase levels
-    for current_level in range(len(level_dir_paths)):
-
+    for current_level in range(1, len(level_dir_paths)): # TODO make 0, len(level_dir_paths) again
+        writer = SummaryWriter(log_dir=f'runs/level_{current_level}')
         if current_level != 0:
             args.load = "1"
 
@@ -376,6 +379,7 @@ def track_metrics(writer, p_losses, rewards, episode_lengths):
         min_reward = min(rewards)
 
         if max_reward > 1:
+            print("Max reward: ", max_reward)
             accuracy = 1
         else:
             accuracy = 0

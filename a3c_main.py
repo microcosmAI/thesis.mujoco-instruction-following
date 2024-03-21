@@ -58,14 +58,14 @@ parser.add_argument(
     type=float,
     default=0.0006,
     metavar="LR",
-    help="learning rate (default: 0.001)",
+    help="learning rate (default: 0.0006)",
 )
 parser.add_argument(
     "--gamma",
     type=float,
     default=0.9996,
     metavar="G",
-    help="discount factor for rewards (default: 0.9995)",
+    help="discount factor for rewards (default: 0.9996)",
 )
 parser.add_argument(
     "--tau",
@@ -129,9 +129,6 @@ if __name__ == "__main__":
         curriculum_dir_path=curriculum_dir_path
     )
     args.input_size = len(word_to_idx)
-
-    # debugging
-    #args.num_processes = 8
 
     agents = ["agent/"]
 
